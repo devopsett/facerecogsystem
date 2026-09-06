@@ -5,13 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VisionGuard AI | Attendance Portal</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- Face API -->
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
 
   <style>
@@ -26,10 +21,10 @@
     }
 
     .glass-card {
-      background: rgba(15, 23, 42, 0.72);
+      background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .glass-card-subtle {
@@ -38,7 +33,6 @@
       border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
-    /* Scanning beam animation */
     @keyframes scanBeam {
       0% { top: 0%; opacity: 0.8; }
       50% { opacity: 0.3; }
@@ -54,25 +48,13 @@
       animation: scanBeam 2.8s infinite ease-in-out;
     }
 
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar {
-      width: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 9999px; }
   </style>
 </head>
 <body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8">
 
-  <!-- Top Navigation / Brand -->
   <header class="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-3">
       <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -82,43 +64,37 @@
         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
           VisionGuard <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Enterprise</span>
         </h1>
-        <p class="text-xs text-slate-400">Autonomous Biometric & Anti-Spoof Verification</p>
+        <p class="text-xs text-slate-400">Autonomous Biometric & Anti-Spoof System</p>
       </div>
     </div>
 
-    <!-- Right Stat Badges -->
     <div class="flex items-center gap-3">
       <div id="statusBadge" class="flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
         </span>
-        <span id="statusText">Initializing Engine...</span>
+        <span id="statusText">Memulakan Sistem...</span>
       </div>
 
       <button id="toggleRegisterModal" class="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95">
         <i data-lucide="user-plus" class="w-4 h-4 text-indigo-400"></i>
-        <span>Enroll Personnel</span>
+        <span>Daftar Wajah</span>
       </button>
     </div>
   </header>
 
-  <!-- Main Grid Workspace -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- LEFT: Camera & Verification Core (7 Columns) -->
     <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
         
-        <!-- Camera Viewport Box -->
         <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
           <video id="video" autoplay muted playsinline class="w-full h-full object-cover scale-x-[-1]"></video>
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
-          <!-- Scanning Light Overlay -->
           <div id="scannerLine" class="scanner-line hidden pointer-events-none"></div>
 
-          <!-- Centered Face Guide Reticle -->
           <div id="reticle" class="absolute inset-0 m-auto w-48 h-60 md:w-56 md:h-72 border-2 border-dashed border-slate-600/40 rounded-[2.5rem] pointer-events-none flex items-center justify-center transition-all duration-300">
             <div class="w-full h-full relative">
               <div class="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-xl"></div>
@@ -128,17 +104,15 @@
             </div>
           </div>
 
-          <!-- Challenge Prompt Floating Banner -->
           <div id="challengeBanner" class="absolute top-4 inset-x-6 mx-auto py-2.5 px-4 rounded-xl glass-card border border-indigo-500/40 text-center text-xs md:text-sm font-semibold tracking-wide text-indigo-200 shadow-2xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center justify-center gap-2.5">
             <i id="challengeIcon" data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
-            <span id="challengeText">Center your face inside the box</span>
+            <span id="challengeText">Sila pandang tepat ke kamera</span>
           </div>
 
-          <!-- Bottom Detection State Indicator -->
           <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
             <div id="livenessPill" class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
               <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>Awaiting Face...</span>
+              <span>Menunggu Wajah...</span>
             </div>
             <div class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] text-slate-400 font-mono">
               FPS: <span id="fpsCounter" class="text-indigo-400 font-semibold">0</span>
@@ -146,72 +120,63 @@
           </div>
         </div>
 
-        <!-- Camera Status Bar -->
         <div class="w-full flex items-center justify-between mt-4 px-1">
           <div class="flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-            <span id="systemNote" class="text-xs font-medium text-slate-300">Live matching enabled</span>
+            <div id="statusDot" class="h-2 w-2 rounded-full bg-amber-500"></div>
+            <span id="systemNote" class="text-xs font-medium text-slate-300">Memulakan komponen...</span>
           </div>
-          <button id="resyncBtn" title="Sync registered user data" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
+          <button id="resyncBtn" title="Sync database" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>Refresh Users</span>
+            <span>Refresh Database</span>
           </button>
         </div>
 
       </div>
     </div>
 
-    <!-- RIGHT: Live Verification Feed & Personnel Stats (5 Columns) -->
     <div class="lg:col-span-5 flex flex-col gap-4">
-      
-      <!-- Quick Counter Metrics -->
       <div class="grid grid-cols-2 gap-3">
         <div class="glass-card rounded-2xl p-4 flex flex-col">
-          <span class="text-xs font-medium text-slate-400">Registered Pool</span>
+          <span class="text-xs font-medium text-slate-400">Wajah Berdaftar</span>
           <span id="registeredCount" class="text-2xl font-bold text-white mt-1">0</span>
         </div>
         <div class="glass-card rounded-2xl p-4 flex flex-col">
-          <span class="text-xs font-medium text-slate-400">Verified Today</span>
+          <span class="text-xs font-medium text-slate-400">Hadir Hari Ini</span>
           <span id="verifiedCount" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
         </div>
       </div>
 
-      <!-- Real-Time Activity Log Card -->
       <div class="glass-card rounded-3xl p-5 flex flex-col h-[470px] shadow-2xl">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
           <div class="flex items-center gap-2">
             <i data-lucide="history" class="w-4 h-4 text-indigo-400"></i>
-            <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Verification Stream</h2>
+            <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Log Kehadiran Langsung</h2>
           </div>
-          <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Live Sync</span>
+          <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Live Feed</span>
         </div>
 
         <div id="attendanceContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs">
-          <!-- Empty State -->
           <div id="emptyLog" class="h-full flex flex-col items-center justify-center text-slate-500 py-16 text-center">
             <i data-lucide="user-check" class="w-8 h-8 stroke-1 mb-2 opacity-40"></i>
-            <p>No transactions recorded yet.</p>
-            <p class="text-[11px] text-slate-600 mt-0.5">Scanned individuals will appear here.</p>
+            <p>Tiada kehadiran dicatat lagi.</p>
+            <p class="text-[11px] text-slate-600 mt-0.5">Pengesahan kehadiran akan keluar di sini.</p>
           </div>
         </div>
       </div>
-
     </div>
 
   </main>
 
-  <!-- MODAL: Enroll Personnel Dialog -->
   <div id="registerModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative">
-      
       <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
         <div class="flex items-center gap-2.5">
           <div class="h-8 w-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
             <i data-lucide="user-plus" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white">Enroll New Personnel</h3>
-            <p class="text-[11px] text-slate-400">Map facial embedding into database</p>
+            <h3 class="text-sm font-semibold text-white">Pendaftaran Muka Baru</h3>
+            <p class="text-[11px] text-slate-400">Simpan ciri wajah ke Google Sheet</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -221,62 +186,54 @@
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1.5">Identification Code / Staff ID</label>
-          <input type="text" id="regId" placeholder="e.g. EMP-9021" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">No. ID / Staff ID</label>
+          <input type="text" id="regId" placeholder="cth: STF-101" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
-          <input type="text" id="regName" placeholder="e.g. Alexander Wright" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Nama Penuh</label>
+          <input type="text" id="regName" placeholder="cth: Ahmad Albab" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
         </div>
 
         <div class="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex gap-3 items-start">
           <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
           <p class="text-[11px] text-slate-400 leading-relaxed">
-            Position the personnel's face in the camera view before pressing capture. Ensure ambient lighting is even.
+            Pastikan wajah individu berada di tengah kamera dan pencahayaan terang sebelum menekan butang daftar.
           </p>
         </div>
 
         <button id="captureFaceBtn" class="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
           <i data-lucide="camera" class="w-4 h-4"></i>
-          <span>Capture Descriptor & Save</span>
+          <span>Imbas Wajah & Simpan</span>
         </button>
       </div>
-
     </div>
   </div>
 
-  <footer class="w-full max-w-6xl text-center py-4 text-[11px] text-slate-600">
-    Encrypted Facial Descriptor Pipeline • Powered by WebAssembly & Google Apps Script
-  </footer>
-
-  <!-- App Core Script -->
   <script>
-    // ----------------- CONFIGURATION -----------------
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
-    const MODEL_URL = "https://cdn.jsdelivr.net/gh/cadenmarchese/face-api-models@master";
+    
+    // Model CDN rasmi yang stabil
+    const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
 
-    // ----------------- STATE MANAGERS ----------------
     let faceMatcher = null;
     let registeredUsers = [];
     let isProcessingTransaction = false;
     let verifiedSessionCount = 0;
     
-    // FPS Measurement
     let lastFrameTime = performance.now();
     let frameCount = 0;
 
-    // Liveness Challenge Machine
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
     let currentLivenessState = LIVENESS.IDLE;
-    let currentChallenge = null; // 'BLINK' | 'TURN_RIGHT' | 'TURN_LEFT'
+    let currentChallenge = null; 
     let targetSubject = null;
     let challengeTimeoutTimer = null;
 
-    // ----------------- DOM ELEMENTS ------------------
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const statusBadge = document.getElementById("statusBadge");
     const statusText = document.getElementById("statusText");
+    const statusDot = document.getElementById("statusDot");
     const scannerLine = document.getElementById("scannerLine");
     const reticle = document.getElementById("reticle");
     const challengeBanner = document.getElementById("challengeBanner");
@@ -290,19 +247,17 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
-    // Modal elements
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
     const closeModal = document.getElementById("closeModal");
     const captureFaceBtn = document.getElementById("captureFaceBtn");
 
-    // ----------------- AUDIO FEEDBACK (Synthesizer) --
     const AudioEngine = {
       ctx: null,
       init() {
         if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       },
-      playBeep(freq = 600, type = "sine", duration = 0.15) {
+      playTone(freq = 600, type = "sine", duration = 0.15) {
         try {
           this.init();
           const osc = this.ctx.createOscillator();
@@ -315,377 +270,78 @@
           gain.connect(this.ctx.destination);
           osc.start();
           osc.stop(this.ctx.currentTime + duration);
-        } catch(e) { /* Audio Context muted */ }
+        } catch(e) {}
       },
       success() {
-        this.playBeep(587.33, "triangle", 0.1);
-        setTimeout(() => this.playBeep(880.00, "triangle", 0.2), 100);
+        this.playTone(587.33, "triangle", 0.1);
+        setTimeout(() => this.playTone(880.00, "triangle", 0.2), 100);
       },
       alert() {
-        this.playBeep(260, "sawtooth", 0.25);
+        this.playTone(260, "sawtooth", 0.25);
       }
     };
 
-    // ----------------- INITIALIZATION ----------------
+    // SYSTEM INITIALIZER DENGAN PENGASINGAN ERROR JELAS
     async function init() {
       lucide.createIcons();
 
+      // Langkah 1: Akses Kamera
+      statusText.innerText = "Mengakses Kamera...";
+      let stream = null;
+      try {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+          });
+        } catch (specErr) {
+          // Jika setting custom ditolak, cuba akses basic
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+        video.srcObject = stream;
+      } catch (camErr) {
+        console.error("Camera Failure:", camErr);
+        failInit(`Kamera Disekat/Gagal: ${camErr.name}`);
+        return;
+      }
+
+      // Langkah 2: Muat turun Model AI
+      statusText.innerText = "Memuat Turun Model AI...";
       try {
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
-
-        statusText.innerText = "Connecting Google Sheet...";
-        await syncUsers();
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
-        });
-        video.srcObject = stream;
-
-        // Ready
-        statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
-        statusText.innerText = "System Active";
-        scannerLine.classList.remove("hidden");
-
-        runDetectionPipeline();
-      } catch (err) {
-        console.error(err);
-        statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20";
-        statusText.innerText = "Hardware / Init Failed";
-        systemNote.innerText = "Camera or model loading failed.";
+      } catch (modelErr) {
+        console.error("Model Loading Failure:", modelErr);
+        failInit("Gagal muat turun Model Wajah (Masalah Rangkaian/CDN)");
+        return;
       }
+
+      // Langkah 3: Sambung ke Google Sheet DB
+      statusText.innerText = "Menyambung Google Sheet...";
+      await syncUsers();
+
+      // Berjaya
+      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+      statusText.innerText = "Sistem Aktif";
+      statusDot.className = "h-2 w-2 rounded-full bg-emerald-500";
+      scannerLine.classList.remove("hidden");
+
+      runDetectionPipeline();
     }
 
-    // ----------------- DESCRIPTOR SYNC ---------------
+    function failInit(reason) {
+      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20";
+      statusText.innerText = "Init Gagal";
+      statusDot.className = "h-2 w-2 rounded-full bg-rose-500";
+      systemNote.innerText = reason;
+      systemNote.className = "text-xs font-semibold text-rose-400";
+    }
+
     async function syncUsers() {
       try {
         const res = await fetch(`${SCRIPT_URL}?action=getUsers`);
         const data = await res.json();
         
-        if (data.status === "success" && data.users) {
-          registeredUsers = data.users;
-          registeredCountEl.innerText = registeredUsers.length;
-
-          if (registeredUsers.length > 0) {
-            const labeled = registeredUsers.map(u => {
-              const descriptorArray = new Float32Array(u.descriptor);
-              return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
-            });
-            faceMatcher = new faceapi.FaceMatcher(labeled, 0.52);
-            systemNote.innerText = `${registeredUsers.length} personnel profiles loaded`;
-          } else {
-            systemNote.innerText = "Database empty. Register a user.";
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch users:", err);
-        systemNote.innerText = "Database sync error.";
-      }
-    }
-
-    // ----------------- GEOMETRY ALGORITHMS -----------
-    function distance(p1, p2) {
-      return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-    }
-
-    function calculateEAR(eye) {
-      const v1 = distance(eye[1], eye[5]);
-      const v2 = distance(eye[2], eye[4]);
-      const h = distance(eye[0], eye[3]);
-      return (v1 + v2) / (2.0 * h);
-    }
-
-    function calculateYawRatio(landmarks) {
-      const jawLeft = landmarks[0];
-      const jawRight = landmarks[16];
-      const nose = landmarks[30];
-
-      const leftDist = Math.abs(nose.x - jawLeft.x);
-      const rightDist = Math.abs(jawRight.x - nose.x);
-      return rightDist === 0 ? 1.0 : leftDist / rightDist;
-    }
-
-    // ----------------- UI NOTIFICATIONS --------------
-    function setPrompt(show, text = "", icon = "eye", isWarn = false) {
-      if (!show) {
-        challengeBanner.classList.add("-translate-y-4", "opacity-0");
-        challengeBanner.classList.remove("translate-y-0", "opacity-100");
-        return;
-      }
-      challengeText.innerText = text;
-      challengeIcon.setAttribute("data-lucide", icon);
-      lucide.createIcons();
-
-      if (isWarn) {
-        challengeBanner.className = challengeBanner.className.replace("border-indigo-500/40 text-indigo-200", "border-rose-500/50 text-rose-300");
-      } else {
-        challengeBanner.className = challengeBanner.className.replace("border-rose-500/50 text-rose-300", "border-indigo-500/40 text-indigo-200");
-      }
-      challengeBanner.classList.remove("-translate-y-4", "opacity-0");
-      challengeBanner.classList.add("translate-y-0", "opacity-100");
-    }
-
-    function resetLiveness() {
-      currentLivenessState = LIVENESS.IDLE;
-      currentChallenge = null;
-      targetSubject = null;
-      clearTimeout(challengeTimeoutTimer);
-      setPrompt(false);
-      livenessPill.innerHTML = `<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i><span>Awaiting Face...</span>`;
-      reticle.className = reticle.className.replace("border-emerald-500/80", "border-slate-600/40");
-      lucide.createIcons();
-    }
-
-    // ----------------- DETECTION & VERIFICATION LOOP -
-    function runDetectionPipeline() {
-      const displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
-      faceapi.matchDimensions(overlay, displaySize);
-
-      setInterval(async () => {
-        // Calculate FPS
-        const now = performance.now();
-        frameCount++;
-        if (now - lastFrameTime >= 1000) {
-          fpsCounter.innerText = frameCount;
-          frameCount = 0;
-          lastFrameTime = now;
-        }
-
-        if (isProcessingTransaction || !faceMatcher) return;
-
-        const detection = await faceapi.detectSingleFace(video)
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-
-        const ctx = overlay.getContext("2d");
-        ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-        if (!detection) {
-          if (currentLivenessState !== LIVENESS.IDLE) resetLiveness();
-          return;
-        }
-
-        const resized = faceapi.resizeResults(detection, displaySize);
-        const match = faceMatcher.findBestMatch(resized.descriptor);
-        const isRecognized = !match.label.includes("unknown");
-
-        if (!isRecognized) {
-          resetLiveness();
-          livenessPill.innerHTML = `<i data-lucide="shield-x" class="w-3.5 h-3.5 text-rose-400"></i><span>Unrecognized Person</span>`;
-          lucide.createIcons();
-          return;
-        }
-
-        const matchParts = match.label.match(/(.*) \((.*)\)/);
-        const pName = matchParts[1];
-        const pId = matchParts[2];
-
-        // Process Facial Landmarks for Spoof Protection
-        const landmarks = resized.landmarks.positions;
-        const leftEye = landmarks.slice(36, 42);
-        const rightEye = landmarks.slice(42, 48);
-        const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
-        const yaw = calculateYawRatio(landmarks);
-
-        handleLivenessChallenge(pId, pName, avgEAR, yaw);
-
-      }, 140);
-    }
-
-    // ----------------- CHALLENGE ENGINE --------------
-    function handleLivenessChallenge(id, name, ear, yaw) {
-      switch (currentLivenessState) {
-        case LIVENESS.IDLE:
-          targetSubject = { id, name };
-          // Randomize challenge to defeat pre-recorded clips
-          const challenges = ['BLINK', 'TURN_RIGHT'];
-          currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
-          currentLivenessState = LIVENESS.PROMPT;
-
-          if (currentChallenge === 'BLINK') {
-            setPrompt(true, `Hi ${name}, please BLINK both eyes`, "eye");
-            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Action: Blink</span>`;
-          } else {
-            setPrompt(true, `Hi ${name}, turn head SLIGHTLY to right`, "arrow-right");
-            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Action: Turn Right</span>`;
-          }
-          lucide.createIcons();
-
-          // 6-second expiration timer
-          challengeTimeoutTimer = setTimeout(() => {
-            if (currentLivenessState !== LIVENESS.VERIFIED) {
-              AudioEngine.alert();
-              setPrompt(true, "Liveness Check Failed (Timeout)", "alert-circle", true);
-              setTimeout(resetLiveness, 2000);
-            }
-          }, 6000);
-          break;
-
-        case LIVENESS.PROMPT:
-          if (currentChallenge === 'BLINK' && ear < 0.19) {
-            currentLivenessState = LIVENESS.ACTION_DETECTED;
-          } else if (currentChallenge === 'TURN_RIGHT' && yaw > 1.9) {
-            currentLivenessState = LIVENESS.ACTION_DETECTED;
-          }
-          break;
-
-        case LIVENESS.ACTION_DETECTED:
-          // For blink: confirm eye opened back up
-          if (currentChallenge === 'BLINK' && ear > 0.25) {
-            verifyAndDispatch(id, name);
-          } else if (currentChallenge === 'TURN_RIGHT') {
-            verifyAndDispatch(id, name);
-          }
-          break;
-      }
-    }
-
-    async function verifyAndDispatch(id, name) {
-      clearTimeout(challengeTimeoutTimer);
-      currentLivenessState = LIVENESS.VERIFIED;
-      isProcessingTransaction = true;
-
-      AudioEngine.success();
-      reticle.className = reticle.className.replace("border-slate-600/40", "border-emerald-500/80");
-      setPrompt(true, `Verified: ${name}! Recording...`, "check-circle2");
-      livenessPill.innerHTML = `<i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Authenticated</span>`;
-      lucide.createIcons();
-
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "recordAttendance",
-            id: id,
-            name: name,
-            type: "Check-In"
-          })
-        });
-        const result = await res.json();
-
-        if (result.status === "success") {
-          appendLog(name, id, "Check-In", new Date().toLocaleTimeString());
-          verifiedSessionCount++;
-          verifiedCountEl.innerText = verifiedSessionCount;
-          setPrompt(true, `Success! Attendance Recorded`, "check-check");
-        } else if (result.status === "skipped") {
-          setPrompt(true, `Cooldown: Already Checked In`, "clock", true);
-        }
-      } catch (err) {
-        console.error(err);
-        setPrompt(true, "Cloud Sync Error", "cloud-off", true);
-      } finally {
-        setTimeout(() => {
-          resetLiveness();
-          isProcessingTransaction = false;
-        }, 3200);
-      }
-    }
-
-    // ----------------- ATTENDANCE LIST DOM -----------
-    function appendLog(name, id, type, time) {
-      if (emptyLog) emptyLog.remove();
-
-      const item = document.createElement("div");
-      item.className = "glass-card-subtle p-3 rounded-2xl flex items-center justify-between border border-slate-800 transition-all hover:border-slate-700 animate-fadeIn";
-      item.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
-            ${name.charAt(0)}
-          </div>
-          <div>
-            <div class="font-medium text-slate-100 flex items-center gap-2">
-              <span>${name}</span>
-              <span class="text-[10px] text-indigo-400 font-mono">${id}</span>
-            </div>
-            <div class="text-[10px] text-emerald-400 font-medium">${type}</div>
-          </div>
-        </div>
-        <span class="text-[11px] font-mono text-slate-400">${time}</span>
-      `;
-      attendanceContainer.prepend(item);
-    }
-
-    // ----------------- MODAL ACTIONS -----------------
-    toggleRegisterModal.addEventListener("click", () => {
-      registerModal.classList.remove("hidden");
-    });
-
-    closeModal.addEventListener("click", () => {
-      registerModal.classList.add("hidden");
-    });
-
-    resyncBtn.addEventListener("click", async () => {
-      resyncBtn.classList.add("animate-spin");
-      await syncUsers();
-      resyncBtn.classList.remove("animate-spin");
-    });
-
-    captureFaceBtn.addEventListener("click", async () => {
-      const id = document.getElementById("regId").value.trim();
-      const name = document.getElementById("regName").value.trim();
-
-      if (!id || !name) {
-        alert("Please provide both ID and Full Name.");
-        return;
-      }
-
-      captureFaceBtn.disabled = true;
-      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Analyzing Face...</span>`;
-      lucide.createIcons();
-
-      const detection = await faceapi.detectSingleFace(video)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (!detection) {
-        alert("No clear face found in camera viewport. Please stand in front of the lens.");
-        captureFaceBtn.disabled = false;
-        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Capture Descriptor & Save</span>`;
-        lucide.createIcons();
-        return;
-      }
-
-      try {
-        const descriptorArray = Array.from(detection.descriptor);
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "register",
-            id: id,
-            name: name,
-            descriptor: descriptorArray
-          })
-        });
-
-        const result = await res.json();
-        if (result.status === "success") {
-          AudioEngine.success();
-          alert(`Successfully enrolled ${name} (${id})`);
-          document.getElementById("regId").value = "";
-          document.getElementById("regName").value = "";
-          registerModal.classList.add("hidden");
-          await syncUsers();
-        } else {
-          alert("Registration error: " + (result.message || "Unknown error"));
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Network failure communicating with Google Apps Script.");
-      } finally {
-        captureFaceBtn.disabled = false;
-        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Capture Descriptor & Save</span>`;
-        lucide.createIcons();
-      }
-    });
-
-    // Start on page load
-    window.addEventListener("load", init);
-  </script>
-</body>
-</html>
+        if (data.status === "success" &&
