@@ -88,7 +88,7 @@
   <!-- Main Workspace -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- LEFT: Camera Utama (Main Viewport) -->
+    <!-- LEFT: Camera Utama -->
     <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
         
@@ -96,10 +96,10 @@
           <video id="video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
-          <!-- Status Bila Paused Semasa Register -->
+          <!-- Paused Overlay Semasa Daftar -->
           <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 hidden z-20">
             <i data-lucide="pause-circle" class="w-10 h-10 text-indigo-400 animate-pulse"></i>
-            <span class="text-xs font-semibold text-slate-300">Kamera Imbasan Utama Dijeda (Paused)</span>
+            <span class="text-xs font-semibold text-slate-300">Kamera Imbasan Utama Dijeda</span>
             <span class="text-[11px] text-slate-500">Pendaftaran sedang berlangsung di modal</span>
           </div>
 
@@ -115,13 +115,13 @@
             </div>
           </div>
 
-          <!-- Challenge Prompt Floating Banner -->
+          <!-- Floating Challenge Prompt -->
           <div id="challengeBanner" class="absolute top-4 inset-x-6 mx-auto py-2.5 px-4 rounded-xl glass-card border border-indigo-500/40 text-center text-xs md:text-sm font-semibold tracking-wide text-indigo-200 shadow-2xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center justify-center gap-2.5">
             <i id="challengeIcon" data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
             <span id="challengeText">Sila pandang tepat ke kamera</span>
           </div>
 
-          <!-- Status Indicators -->
+          <!-- Indicators -->
           <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
             <div id="livenessPill" class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
               <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <!-- RIGHT: Live Attendance List & Stats -->
+    <!-- RIGHT: Live Attendance List & Metrics -->
     <div class="lg:col-span-5 flex flex-col gap-4">
       <div class="grid grid-cols-2 gap-3">
         <div class="glass-card rounded-2xl p-4 flex flex-col">
@@ -181,7 +181,7 @@
 
   </main>
 
-  <!-- MODAL: DAFTAR WAJAH BARU (DENGAN KAMERA KHAS SENDIRI) -->
+  <!-- MODAL: DAFTAR WAJAH BARU -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col">
       
@@ -192,7 +192,7 @@
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white">Pendaftaran Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Kamera modal aktif • Scan utama dijeda</p>
+            <p class="text-[11px] text-slate-400">Enjin Anti-Duplikasi ID & Vektor Muka Aktif</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -202,11 +202,9 @@
 
       <!-- Kamera Preview Slot Dalam Modal -->
       <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700 relative mb-4 flex items-center justify-center">
-        <!-- Dedicated Video Elemen Khas Modal -->
         <video id="regVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
         <canvas id="regOverlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
-        <!-- Garisan Panduan Muka di Modal -->
         <div class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center">
           <span class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30">
             Pusatkan Wajah Anda
@@ -238,7 +236,7 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
 
-    let mediaStream = null; // Stream kamera global
+    let mediaStream = null;
     let faceMatcher = null;
     let registeredUsers = [];
     let isProcessingTransaction = false;
@@ -252,13 +250,15 @@
     const EAR_OPEN_THRESHOLD = 0.25;
     const YAW_TURN_THRESHOLD = 1.65;
 
+    // Jarak Euclidean bawah 0.55 bermakna orang yang sama
+    const DUPLICATE_FACE_THRESHOLD = 0.55; 
+
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
     let currentLivenessState = LIVENESS.IDLE;
     let currentChallenge = null; 
     let targetSubject = null;
     let challengeTimeoutTimer = null;
 
-    // Elements Utama
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const pausedOverlay = document.getElementById("pausedOverlay");
@@ -280,7 +280,6 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
-    // Elements Modal
     const regVideo = document.getElementById("regVideo");
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
@@ -399,15 +398,27 @@
               const descriptorArray = new Float32Array(u.descriptor);
               return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
             });
-            faceMatcher = new faceapi.FaceMatcher(labeled, 0.52);
+            // Gunakan 0.55 supaya pengecaman lebih stabil
+            faceMatcher = new faceapi.FaceMatcher(labeled, 0.55);
             systemNote.innerText = `${registeredUsers.length} profil dimuatkan`;
           } else {
+            faceMatcher = null;
             systemNote.innerText = "Pangkalan data kosong. Sila daftar pengguna baru.";
           }
         }
       } catch (err) {
         systemNote.innerText = "Mod luar talian.";
       }
+    }
+
+    // FORMULA EUCLIDEAN DISTANCE ANTARA DUA VEKTOR 128-FLOAT
+    function computeVectorDistance(desc1, desc2) {
+      let sum = 0;
+      for (let i = 0; i < desc1.length; i++) {
+        const diff = desc1[i] - desc2[i];
+        sum += diff * diff;
+      }
+      return Math.sqrt(sum);
     }
 
     function distance(p1, p2) {
@@ -476,7 +487,6 @@
           lastFrameTime = now;
         }
 
-        // Jika modal aktif, PAUSE SEMUA AKTIVITI SCAN MAIN
         if (isRegisteringMode || isProcessingTransaction || !faceMatcher || video.paused || video.ended) {
           return;
         }
@@ -606,6 +616,7 @@
           setPrompt(true, `Kehadiran Telah Dicatat Tadi`, "clock", true);
         }
       } catch (err) {
+        console.error(err);
         setPrompt(true, "Ralat Sambungan Cloud", "cloud-off", true);
       } finally {
         setTimeout(() => {
@@ -638,26 +649,19 @@
       attendanceContainer.prepend(item);
     }
 
-    // =========================================================================
-    // PENGURUSAN KAMERA MODAL & PAUSE KAMERA UTAMA
-    // =========================================================================
     async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
 
-      // 1. Pause kamera utama & tunjuk overlay paused
       video.pause();
       pausedOverlay.classList.remove("hidden");
       scannerLine.classList.add("hidden");
 
-      // Padam canvas lukisan scan utama
       const ctx = overlay.getContext("2d");
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-      // 2. Buka modal
       registerModal.classList.remove("hidden");
 
-      // 3. Pasang stream kamera ke regVideo (Kamera Modal)
       if (mediaStream) {
         regVideo.srcObject = mediaStream;
         try {
@@ -671,19 +675,15 @@
     function closeRegistrationMode() {
       isRegisteringMode = false;
 
-      // 1. Matikan stream pada video modal
       regVideo.pause();
       regVideo.srcObject = null;
 
-      // 2. Tutup modal
       registerModal.classList.add("hidden");
 
-      // 3. Resume kamera utama
       pausedOverlay.classList.add("hidden");
       scannerLine.classList.remove("hidden");
       video.play().catch(e => console.warn("Main video resume warning:", e));
 
-      // Reset borang
       document.getElementById("regId").value = "";
       document.getElementById("regName").value = "";
     }
@@ -697,7 +697,9 @@
       resyncBtn.classList.remove("animate-spin");
     });
 
-    // DAFTAR MUKA DARI ELEMEN regVideo
+    // =========================================================================
+    // DAFTAR MUKA: SEMAKAN KETAT VEKTOR & ID DUPLIKAT
+    // =========================================================================
     captureFaceBtn.addEventListener("click", async () => {
       const id = document.getElementById("regId").value.trim();
       const name = document.getElementById("regName").value.trim();
@@ -707,12 +709,19 @@
         return;
       }
 
+      // 1. SEMAKAN ID DUPLIKAT TERLEBIH DAHULU
+      const idExists = registeredUsers.find(u => u.id.toLowerCase() === id.toLowerCase());
+      if (idExists) {
+        AudioEngine.alert();
+        alert(`SEKATAN ID: ID '${id}' sudah didaftarkan kepada ${idExists.name}! Sila gunakan ID lain.`);
+        return;
+      }
+
       captureFaceBtn.disabled = true;
-      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Mengimbas Muka...</span>`;
+      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Memeriksa Keaslian Vektor Muka...</span>`;
       lucide.createIcons();
 
       try {
-        // Ambil terus dari regVideo yang sedang menyala di modal
         const detection = await faceapi.detectSingleFace(regVideo)
           .withFaceLandmarks()
           .withFaceDescriptor();
@@ -725,7 +734,38 @@
           return;
         }
 
-        const descriptorArray = Array.from(detection.descriptor);
+        const newDescriptor = detection.descriptor; // Float32Array 128-dim
+
+        // 2. SEMAKAN DUPLIKASI MUKA DENGAN SEMUA PENGGUNA BERDAFTAR
+        let matchedUser = null;
+        let lowestDist = 999.0;
+
+        for (let user of registeredUsers) {
+          const userDescriptor = new Float32Array(user.descriptor);
+          const dist = computeVectorDistance(newDescriptor, userDescriptor);
+
+          if (dist < lowestDist) {
+            lowestDist = dist;
+          }
+
+          // Jika jarak <= 0.55, bermakna ini orang yang sama!
+          if (dist <= DUPLICATE_FACE_THRESHOLD) {
+            matchedUser = { ...user, distance: dist };
+            break;
+          }
+        }
+
+        if (matchedUser) {
+          AudioEngine.alert();
+          alert(`SEKATAN WAJAH DUPLIKAT!\n\nWajah anda telah didaftarkan dalam sistem sebagai:\nNama: ${matchedUser.name}\nID: ${matchedUser.id}\n(Jarak Ketepatan: ${matchedUser.distance.toFixed(3)})\n\nPendaftaran berulang kali adalah dilarang!`);
+          captureFaceBtn.disabled = false;
+          captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
+          lucide.createIcons();
+          return;
+        }
+
+        // 3. JIKA LULUS SEMUA SEMAKAN, HANTAR KE GOOGLE APPS SCRIPT
+        const descriptorArray = Array.from(newDescriptor);
         
         captureFaceBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Google Sheet...</span>`;
         lucide.createIcons();
@@ -744,11 +784,12 @@
         const result = await res.json();
         if (result.status === "success") {
           AudioEngine.success();
-          alert(`Pendaftaran Berjaya: ${name} (${id})`);
+          alert(`Pendaftaran Berjaya!\nNama: ${name}\nID: ${id}`);
           closeRegistrationMode();
-          await syncUsers();
+          await syncUsers(); // Muat semula senarai terkini
         } else {
-          alert("Ralat dari Google Sheet: " + (result.message || "Gagal"));
+          AudioEngine.alert();
+          alert("Gagal: " + (result.message || "Ralat pendaftaran"));
         }
       } catch (err) {
         console.error(err);
