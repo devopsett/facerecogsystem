@@ -88,13 +88,20 @@
   <!-- Main Workspace -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- LEFT: Camera Viewport -->
+    <!-- LEFT: Camera Utama (Main Viewport) -->
     <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
         
         <div id="cameraViewportContainer" class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
           <video id="video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+
+          <!-- Status Bila Paused Semasa Register -->
+          <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 hidden z-20">
+            <i data-lucide="pause-circle" class="w-10 h-10 text-indigo-400 animate-pulse"></i>
+            <span class="text-xs font-semibold text-slate-300">Kamera Imbasan Utama Dijeda (Paused)</span>
+            <span class="text-[11px] text-slate-500">Pendaftaran sedang berlangsung di modal</span>
+          </div>
 
           <div id="scannerLine" class="scanner-line hidden pointer-events-none"></div>
 
@@ -133,7 +140,7 @@
           </div>
           <button id="resyncBtn" title="Sync database" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>Muat Semula Pangkalan Data</span>
+            <span>Muat Semula Data</span>
           </button>
         </div>
 
@@ -174,7 +181,7 @@
 
   </main>
 
-  <!-- MODAL: DAFTAR WAJAH BARU -->
+  <!-- MODAL: DAFTAR WAJAH BARU (DENGAN KAMERA KHAS SENDIRI) -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col">
       
@@ -185,7 +192,7 @@
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white">Pendaftaran Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Kamera imbasan utama dipausekan untuk proses pendaftaran</p>
+            <p class="text-[11px] text-slate-400">Kamera modal aktif • Scan utama dijeda</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -194,9 +201,17 @@
       </div>
 
       <!-- Kamera Preview Slot Dalam Modal -->
-      <div id="modalCameraSlot" class="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-black border border-slate-800 relative mb-4 flex items-center justify-center">
-        <div class="absolute inset-0 border-2 border-indigo-500/40 rounded-2xl pointer-events-none z-10 m-2"></div>
-        <span id="modalCamStatus" class="text-xs text-slate-400">Live preview aktif...</span>
+      <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700 relative mb-4 flex items-center justify-center">
+        <!-- Dedicated Video Elemen Khas Modal -->
+        <video id="regVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
+        <canvas id="regOverlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+
+        <!-- Garisan Panduan Muka di Modal -->
+        <div class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center">
+          <span class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30">
+            Pusatkan Wajah Anda
+          </span>
+        </div>
       </div>
 
       <div class="space-y-3">
@@ -223,6 +238,7 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
 
+    let mediaStream = null; // Stream kamera global
     let faceMatcher = null;
     let registeredUsers = [];
     let isProcessingTransaction = false;
@@ -232,10 +248,9 @@
     let lastFrameTime = performance.now();
     let frameCount = 0;
 
-    // AMBANG LIVENESS YANG DILARASKAN (TIDAK TERLALU KETAT)
-    const EAR_CLOSED_THRESHOLD = 0.23; // Mata dianggap tertutup jika EAR < 0.23
-    const EAR_OPEN_THRESHOLD = 0.25;   // Mata dibuka semula jika EAR > 0.25
-    const YAW_TURN_THRESHOLD = 1.65;   // Pusing sedikit ke kanan sudah trigger
+    const EAR_CLOSED_THRESHOLD = 0.23;
+    const EAR_OPEN_THRESHOLD = 0.25;
+    const YAW_TURN_THRESHOLD = 1.65;
 
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
     let currentLivenessState = LIVENESS.IDLE;
@@ -243,10 +258,10 @@
     let targetSubject = null;
     let challengeTimeoutTimer = null;
 
+    // Elements Utama
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
-    const cameraViewportContainer = document.getElementById("cameraViewportContainer");
-    const modalCameraSlot = document.getElementById("modalCameraSlot");
+    const pausedOverlay = document.getElementById("pausedOverlay");
     const statusBadge = document.getElementById("statusBadge");
     const statusText = document.getElementById("statusText");
     const statusDot = document.getElementById("statusDot");
@@ -265,6 +280,8 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
+    // Elements Modal
+    const regVideo = document.getElementById("regVideo");
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
     const closeModal = document.getElementById("closeModal");
@@ -304,17 +321,16 @@
         throw new Error("Sila gunakan HTTPS atau http://localhost.");
       }
 
-      let stream = null;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
       } catch (err1) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
-      video.srcObject = stream;
+      video.srcObject = mediaStream;
 
       return new Promise((resolve) => {
         video.onloadedmetadata = () => {
@@ -444,7 +460,6 @@
       lucide.createIcons();
     }
 
-    // MAIN PIPELINE
     function runDetectionPipeline() {
       const displaySize = { 
         width: video.videoWidth || video.clientWidth || 640, 
@@ -461,6 +476,7 @@
           lastFrameTime = now;
         }
 
+        // Jika modal aktif, PAUSE SEMUA AKTIVITI SCAN MAIN
         if (isRegisteringMode || isProcessingTransaction || !faceMatcher || video.paused || video.ended) {
           return;
         }
@@ -500,7 +516,6 @@
         const avgEAR = (leftEAR + rightEAR) / 2.0;
         const yaw = calculateYawRatio(landmarks);
 
-        // Hantar kedua-dua nilai mata untuk fleksibiliti pengesanan
         handleLivenessChallenge(pId, pName, avgEAR, yaw, leftEAR, rightEAR);
 
       }, 140);
@@ -535,7 +550,6 @@
         case LIVENESS.PROMPT:
           if (currentChallenge === 'BLINK') {
             livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Kelip Mata (EAR: ${ear.toFixed(2)})</span>`;
-            // Trigger jika purata mata ATAU salah satu mata capai ambang tutup
             if (ear < EAR_CLOSED_THRESHOLD || leftEar < EAR_CLOSED_THRESHOLD || rightEar < EAR_CLOSED_THRESHOLD) {
               currentLivenessState = LIVENESS.ACTION_DETECTED;
               livenessPill.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Buka Mata Semula...</span>`;
@@ -550,7 +564,6 @@
           break;
 
         case LIVENESS.ACTION_DETECTED:
-          // Pastikan mata dibuka semula selepas ditutup
           if (currentChallenge === 'BLINK' && ear > EAR_OPEN_THRESHOLD) {
             verifyAndDispatch(id, name);
           } else if (currentChallenge === 'TURN_RIGHT') {
@@ -593,7 +606,6 @@
           setPrompt(true, `Kehadiran Telah Dicatat Tadi`, "clock", true);
         }
       } catch (err) {
-        console.error(err);
         setPrompt(true, "Ralat Sambungan Cloud", "cloud-off", true);
       } finally {
         setTimeout(() => {
@@ -626,23 +638,52 @@
       attendanceContainer.prepend(item);
     }
 
-    function openRegistrationMode() {
+    // =========================================================================
+    // PENGURUSAN KAMERA MODAL & PAUSE KAMERA UTAMA
+    // =========================================================================
+    async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
-      
+
+      // 1. Pause kamera utama & tunjuk overlay paused
+      video.pause();
+      pausedOverlay.classList.remove("hidden");
+      scannerLine.classList.add("hidden");
+
+      // Padam canvas lukisan scan utama
       const ctx = overlay.getContext("2d");
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-      modalCameraSlot.appendChild(video);
+      // 2. Buka modal
       registerModal.classList.remove("hidden");
+
+      // 3. Pasang stream kamera ke regVideo (Kamera Modal)
+      if (mediaStream) {
+        regVideo.srcObject = mediaStream;
+        try {
+          await regVideo.play();
+        } catch (e) {
+          console.warn("Reg video auto-play warning:", e);
+        }
+      }
     }
 
     function closeRegistrationMode() {
       isRegisteringMode = false;
+
+      // 1. Matikan stream pada video modal
+      regVideo.pause();
+      regVideo.srcObject = null;
+
+      // 2. Tutup modal
       registerModal.classList.add("hidden");
-      
-      cameraViewportContainer.insertBefore(video, overlay);
-      
+
+      // 3. Resume kamera utama
+      pausedOverlay.classList.add("hidden");
+      scannerLine.classList.remove("hidden");
+      video.play().catch(e => console.warn("Main video resume warning:", e));
+
+      // Reset borang
       document.getElementById("regId").value = "";
       document.getElementById("regName").value = "";
     }
@@ -656,6 +697,7 @@
       resyncBtn.classList.remove("animate-spin");
     });
 
+    // DAFTAR MUKA DARI ELEMEN regVideo
     captureFaceBtn.addEventListener("click", async () => {
       const id = document.getElementById("regId").value.trim();
       const name = document.getElementById("regName").value.trim();
@@ -669,15 +711,14 @@
       captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Mengimbas Muka...</span>`;
       lucide.createIcons();
 
-      await new Promise(r => setTimeout(r, 200));
-
       try {
-        const detection = await faceapi.detectSingleFace(video)
+        // Ambil terus dari regVideo yang sedang menyala di modal
+        const detection = await faceapi.detectSingleFace(regVideo)
           .withFaceLandmarks()
           .withFaceDescriptor();
 
         if (!detection) {
-          alert("Wajah tidak dapat dikesan! Pastikan muka anda berada tepat di tengah kotak kamera preview.");
+          alert("Wajah tidak dapat dikesan! Pastikan muka anda berada tepat di tengah kotak kamera.");
           captureFaceBtn.disabled = false;
           captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
           lucide.createIcons();
