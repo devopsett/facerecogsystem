@@ -64,7 +64,6 @@
 </head>
 <body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8 select-none">
 
-  <!-- Header -->
   <header class="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-3.5">
       <div class="h-11 w-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/30">
@@ -84,7 +83,7 @@
           <span id="pingDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span id="mainDot" class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
         </span>
-        <span id="statusText">Buka kamera...</span>
+        <span id="statusText">Sedang bersedia...</span>
       </div>
 
       <button id="toggleRegisterModal" class="flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-100 border border-slate-700/80 transition active:scale-95 shadow-md">
@@ -94,10 +93,8 @@
     </div>
   </header>
 
-  <!-- Ruang Utama -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- KIRI: Kamera Utama -->
     <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden border border-slate-800">
         
@@ -143,7 +140,7 @@
         <div class="w-full flex items-center justify-between mt-4 px-1.5">
           <div class="flex items-center gap-2.5">
             <div id="statusDot" class="h-2 w-2 rounded-full bg-amber-500"></div>
-            <span id="systemNote" class="text-xs font-medium text-slate-300">Menyediakan sistem...</span>
+            <span id="systemNote" class="text-xs font-medium text-slate-300">Menyambung ke pangkalan data...</span>
           </div>
           <button id="resyncBtn" title="Muat semula data" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -154,7 +151,6 @@
       </div>
     </div>
 
-    <!-- KANAN: Senarai Rekod -->
     <div class="lg:col-span-5 flex flex-col gap-4">
       <div class="grid grid-cols-2 gap-3.5">
         <div class="glass-card rounded-2xl p-4 flex flex-col border border-slate-800">
@@ -188,7 +184,6 @@
 
   </main>
 
-  <!-- MODAL PENDAFTARAN MUKA -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col animate-modal-pop">
       
@@ -199,7 +194,7 @@
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white">Daftar Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Pastikan muka berada dalam bulatan kamera</p>
+            <p class="text-[11px] text-slate-400">Pastikan muka dikesan dalam kotak sebelum menekan butang</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition">
@@ -209,16 +204,16 @@
 
       <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700/80 relative mb-4 flex items-center justify-center shadow-inner">
         <video id="regVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
+        <canvas id="regOverlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
         <canvas id="regSnapshot" class="absolute inset-0 w-full h-full object-cover scale-x-[-1] hidden z-10"></canvas>
 
         <div id="regReticle" class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20 transition-all">
           <span id="regStatusBadge" class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30 shadow-md text-center max-w-[85%]">
-            Pusatkan muka anda
+            Mencari muka...
           </span>
         </div>
       </div>
 
-      <!-- Langkah 1 -->
       <div id="step1Container" class="mb-2">
         <button id="scanFaceBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 active:scale-[0.98]">
           <i data-lucide="camera" class="w-4 h-4"></i>
@@ -226,14 +221,13 @@
         </button>
       </div>
 
-      <!-- Langkah 2 -->
       <div id="step2Container" class="space-y-3.5 hidden border-t border-slate-800 pt-4">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-            <i data-lucide="check-circle" class="w-4 h-4"></i> Muka berjaya dikesan! Masukkan maklumat:
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Muka berjaya diambil! Sila masukkan butiran:
           </span>
           <button id="rescanBtn" class="text-[11px] text-slate-400 hover:text-white underline">
-            Imbas Balik
+            Imbas Semula
           </button>
         </div>
 
@@ -257,7 +251,6 @@
     </div>
   </div>
 
-  <!-- MODAL NOTIFIKASI -->
   <div id="noticeModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col items-center text-center animate-modal-pop">
       <div id="noticeIconContainer" class="h-12 w-12 rounded-2xl flex items-center justify-center mb-3.5 border">
@@ -277,7 +270,6 @@
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
-    // CDN model rasmi yang disahkan lengkap
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
 
     let mediaStream = null;
@@ -300,6 +292,10 @@
     let targetSubject = null;
     let challengeTimeoutTimer = null;
     let baselineEARMain = null;
+
+    // Modal Live Preview Tracking Loop
+    let regTrackingInterval = null;
+    let currentDetectedFace = null;
 
     // Elements
     const video = document.getElementById("video");
@@ -325,6 +321,7 @@
 
     // Modal Daftar Elements
     const regVideo = document.getElementById("regVideo");
+    const regOverlay = document.getElementById("regOverlay");
     const regSnapshot = document.getElementById("regSnapshot");
     const regReticle = document.getElementById("regReticle");
     const regStatusBadge = document.getElementById("regStatusBadge");
@@ -399,10 +396,9 @@
       noticeModal.classList.add("hidden");
     });
 
-    // 1. BUKA KAMERA DAHULU (PASTI MENYALA CEPAT)
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Pelayar tidak menyokong getUserMedia. Pastikan anda guna HTTPS atau localhost.");
+        throw new Error("Sila gunakan HTTPS atau localhost.");
       }
 
       try {
@@ -423,41 +419,33 @@
       });
     }
 
-    // 2. INITIALIZER BERPERINGKAT
     async function init() {
       lucide.createIcons();
 
-      // Langkah A: Kamera
       try {
         statusText.innerText = "Buka kamera...";
         await startCamera();
-        systemNote.innerText = "Kamera aktif. Memuatkan AI...";
       } catch (camErr) {
-        console.error(camErr);
-        failSystem("Kamera Gagal", "Sila benarkan akses kamera pada pelayar.");
+        failSystem("Kamera Tak Dapat Buka", "Sila benarkan akses kamera pada pelayar anda.");
         return;
       }
 
-      // Langkah B: Muat Turun Model AI (Guna SSD MobileNet rasmi yang stabil)
       try {
-        statusText.innerText = "Memuatkan AI...";
+        statusText.innerText = "Memuatkan AI Ringan...";
+        // Gunakan TinyFaceDetector yang pantas & responsif
         await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
-        systemNote.innerText = "AI sedia. Menyambung database...";
       } catch (modelErr) {
-        console.error("Model Load Error:", modelErr);
-        failSystem("Gagal Muat AI", "Gagal memuatkan sistem AI. Semak sambungan internet anda.");
+        failSystem("Gagal Muat AI", "Gagal memuatkan sistem pengesanan. Sila semak sambungan internet anda.");
         return;
       }
 
-      // Langkah C: Database
-      statusText.innerText = "Menyambung data...";
+      statusText.innerText = "Menyambung database...";
       await syncUsers();
 
-      // Berjaya
       statusBadge.className = "flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
       pingDot.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
       mainDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
@@ -564,7 +552,7 @@
       lucide.createIcons();
     }
 
-    // DETECTION LOOP UTAMA
+    // MAIN PIPELINE MENGGUNAKAN TINY FACE DETECTOR
     function runDetectionPipeline() {
       const displaySize = { 
         width: video.videoWidth || video.clientWidth || 640, 
@@ -585,7 +573,7 @@
           return;
         }
 
-        const detection = await faceapi.detectSingleFace(video)
+        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
 
@@ -622,7 +610,7 @@
 
         handleLivenessChallenge(pId, pName, avgEAR, yaw, leftEAR, rightEAR);
 
-      }, 120);
+      }, 100);
     }
 
     function handleLivenessChallenge(id, name, ear, yaw, leftEar, rightEar) {
@@ -749,7 +737,9 @@
       attendanceContainer.prepend(item);
     }
 
-    // MODAL REGISTRATION PENUH
+    // =========================================================================
+    // MODAL TRACKING REAL-TIME (TIDAK LAG DAN MUDAH DETECT)
+    // =========================================================================
     async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
@@ -771,11 +761,60 @@
         } catch (e) {
           console.warn("Reg video play warning:", e);
         }
+
+        // Jalankan pengesan muka langsung di dalam modal supaya pengguna nampak status
+        startModalLiveTracking();
       }
+    }
+
+    function startModalLiveTracking() {
+      const displaySize = { 
+        width: regVideo.videoWidth || 640, 
+        height: regVideo.videoHeight || 480 
+      };
+      faceapi.matchDimensions(regOverlay, displaySize);
+
+      regTrackingInterval = setInterval(async () => {
+        if (!isRegisteringMode || regVideo.paused || regVideo.ended) return;
+
+        // Guna TinyFaceDetector yang pantas
+        const detection = await faceapi.detectSingleFace(regVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        const ctx = regOverlay.getContext("2d");
+        ctx.clearRect(0, 0, regOverlay.width, regOverlay.height);
+
+        if (detection) {
+          currentDetectedFace = detection;
+          const resized = faceapi.resizeResults(detection, displaySize);
+          
+          // Lukis kotak panduan hijau pada muka secara langsung
+          new faceapi.draw.DrawBox(resized.detection.box, {
+            label: "Muka Dikesan",
+            boxColor: "#10b981",
+            lineWidth: 2
+          }).draw(regOverlay);
+
+          regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40 shadow-md text-center max-w-[85%]";
+          regStatusBadge.innerText = "✓ Muka dikesan! Tekan butang di bawah";
+          regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-emerald-500 rounded-3xl pointer-events-none flex items-center justify-center z-20 transition-all";
+        } else {
+          currentDetectedFace = null;
+          regStatusBadge.className = "text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30 shadow-md text-center max-w-[85%]";
+          regStatusBadge.innerText = "Mencari muka... Sila pandang kamera";
+          regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20 transition-all";
+        }
+      }, 150);
     }
 
     function resetRegistrationState() {
       tempScannedDescriptor = null;
+      currentDetectedFace = null;
+      clearInterval(regTrackingInterval);
+
+      const ctx = regOverlay.getContext("2d");
+      ctx.clearRect(0, 0, regOverlay.width, regOverlay.height);
 
       step1Container.classList.remove("hidden");
       step2Container.classList.add("hidden");
@@ -784,7 +823,7 @@
       
       regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20";
       regStatusBadge.className = "text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30";
-      regStatusBadge.innerText = "Pusatkan muka anda";
+      regStatusBadge.innerText = "Mencari muka...";
 
       scanFaceBtn.disabled = false;
       scanFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>1. Ambil Gambar Muka</span>`;
@@ -796,6 +835,7 @@
 
     function closeRegistrationMode() {
       isRegisteringMode = false;
+      clearInterval(regTrackingInterval);
 
       regVideo.pause();
       regVideo.srcObject = null;
@@ -819,84 +859,85 @@
       showNotice("Selesai", "Data senarai nama telah berjaya dikemas kini.", "success");
     });
 
-    rescanBtn.addEventListener("click", resetRegistrationState);
+    rescanBtn.addEventListener("click", () => {
+      resetRegistrationState();
+      startModalLiveTracking();
+    });
 
-    // LANGKAH 1: IMBAS MUKA DI MODAL
+    // LANGKAH 1: AMBIL GAMBAR DENGAN SEGERA APABILA MUKA SUDAH ADA
     scanFaceBtn.addEventListener("click", async () => {
       scanFaceBtn.disabled = true;
-      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Sedang mengesan muka...</span>`;
+      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Sedang Menyemak...</span>`;
       lucide.createIcons();
 
-      try {
-        const detection = await faceapi.detectSingleFace(regVideo)
+      // Gunakan descriptor yang sedang aktif dikesan di skrin
+      let detection = currentDetectedFace;
+
+      // Jika belum ada frame dalam cache, cuba kesan sekali lagi secara langsung
+      if (!detection) {
+        detection = await faceapi.detectSingleFace(regVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
+      }
 
-        if (!detection) {
-          showNotice("Muka Tidak Dikesan", "Sila pastikan muka anda berada tepat di dalam bulatan kamera dan pencahayaan terang.", "error");
-          scanFaceBtn.disabled = false;
-          scanFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>1. Ambil Gambar Muka</span>`;
-          lucide.createIcons();
-          return;
-        }
-
-        const scannedDescriptor = detection.descriptor;
-
-        // Semakan duplikasi muka
-        let matchedUser = null;
-        let lowestDist = 999.0;
-
-        for (let user of registeredUsers) {
-          const userDescriptor = new Float32Array(user.descriptor);
-          const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
-
-          if (dist < lowestDist) lowestDist = dist;
-
-          if (dist <= DUPLICATE_FACE_THRESHOLD) {
-            matchedUser = { ...user, distance: dist };
-            break;
-          }
-        }
-
-        if (matchedUser) {
-          showNotice(
-            "Muka Sudah Didaftarkan", 
-            `Muka ini sudah pun ada dalam sistem atas nama ${matchedUser.name} (ID: ${matchedUser.id}). Pendaftaran berulang tidak dibenarkan.`, 
-            "error"
-          );
-          resetRegistrationState();
-          return;
-        }
-
-        tempScannedDescriptor = scannedDescriptor;
-
-        // Ambil snapshot
-        regSnapshot.width = regVideo.videoWidth || 640;
-        regSnapshot.height = regVideo.videoHeight || 480;
-        const snapCtx = regSnapshot.getContext("2d");
-        snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
-
-        regSnapshot.classList.remove("hidden");
-        regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40";
-        regStatusBadge.innerText = "✓ Muka Berjaya Dikesan";
-
-        AudioEngine.success();
-
-        step1Container.classList.add("hidden");
-        step2Container.classList.remove("hidden");
-        lucide.createIcons();
-
-      } catch (err) {
-        console.error(err);
-        showNotice("Ralat Imbasan", "Sistem gagal mengesan muka: " + err.message, "error");
-      } finally {
+      if (!detection) {
+        showNotice("Muka Tidak Dikesan", "Sila dekatkan sedikit muka anda ke kamera sehingga kotak hijau muncul, kemudian tekan semula butang.", "error");
         scanFaceBtn.disabled = false;
         scanFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>1. Ambil Gambar Muka</span>`;
         lucide.createIcons();
+        return;
       }
+
+      clearInterval(regTrackingInterval);
+      const scannedDescriptor = detection.descriptor;
+
+      // Semakan Muka Duplikat
+      let matchedUser = null;
+      let lowestDist = 999.0;
+
+      for (let user of registeredUsers) {
+        const userDescriptor = new Float32Array(user.descriptor);
+        const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
+
+        if (dist < lowestDist) lowestDist = dist;
+
+        if (dist <= DUPLICATE_FACE_THRESHOLD) {
+          matchedUser = { ...user, distance: dist };
+          break;
+        }
+      }
+
+      if (matchedUser) {
+        showNotice(
+          "Muka Sudah Didaftarkan", 
+          `Muka ini sudah pun ada dalam sistem atas nama ${matchedUser.name} (ID: ${matchedUser.id}). Pendaftaran berulang tidak dibenarkan.`, 
+          "error"
+        );
+        resetRegistrationState();
+        startModalLiveTracking();
+        return;
+      }
+
+      tempScannedDescriptor = scannedDescriptor;
+
+      // Bekukan paparan kamera dengan gambar snapshot
+      regSnapshot.width = regVideo.videoWidth || 640;
+      regSnapshot.height = regVideo.videoHeight || 480;
+      const snapCtx = regSnapshot.getContext("2d");
+      snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
+
+      regSnapshot.classList.remove("hidden");
+      regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40";
+      regStatusBadge.innerText = "✓ Muka Berjaya Disahkan";
+
+      AudioEngine.success();
+
+      step1Container.classList.add("hidden");
+      step2Container.classList.remove("hidden");
+      lucide.createIcons();
     });
 
-    // LANGKAH 2: SIMPAN KE GOOGLE SHEETS
+    // LANGKAH 2: SIMPAN REKOD KE GOOGLE SHEETS
     saveRecordBtn.addEventListener("click", async () => {
       const id = document.getElementById("regId").value.trim();
       const name = document.getElementById("regName").value.trim();
@@ -909,6 +950,7 @@
       if (!tempScannedDescriptor) {
         showNotice("Imbas Dulu", "Sila ambil gambar muka di Langkah 1 dahulu.", "error");
         resetRegistrationState();
+        startModalLiveTracking();
         return;
       }
 
