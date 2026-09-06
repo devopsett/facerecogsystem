@@ -88,11 +88,11 @@
   <!-- Main Workspace -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- LEFT: Camera & Processing Box -->
+    <!-- LEFT: Camera Viewport -->
     <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
         
-        <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+        <div id="cameraViewportContainer" class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
           <video id="video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
@@ -114,20 +114,7 @@
             <span id="challengeText">Sila pandang tepat ke kamera</span>
           </div>
 
-          <!-- Camera Recovery Overlay (Jika Browser Sekat) -->
-          <div id="camFallbackOverlay" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center hidden z-20">
-            <div class="h-12 w-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 border border-rose-500/20">
-              <i data-lucide="camera-off" class="w-6 h-6"></i>
-            </div>
-            <h3 class="text-sm font-bold text-white mb-1">Akses Kamera Belum Dibenarkan</h3>
-            <p id="camErrorDetails" class="text-xs text-slate-400 max-w-sm mb-4">Sila benarkan akses webcam pada pelayar web anda untuk memulakan sistem.</p>
-            <button id="retryCamBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-indigo-600/30">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Cuba Sambung Kamera</span>
-            </button>
-          </div>
-
-          <!-- Status Indicators (Bawah Camera) -->
+          <!-- Status Indicators -->
           <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
             <div id="livenessPill" class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
               <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -187,17 +174,18 @@
 
   </main>
 
-  <!-- MODAL: Daftar Wajah Baru -->
-  <div id="registerModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
-    <div class="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
+  <!-- MODAL: DAFTAR WAJAH BARU -->
+  <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
+    <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
         <div class="flex items-center gap-2.5">
           <div class="h-8 w-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
             <i data-lucide="user-plus" class="w-4 h-4"></i>
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white">Pendaftaran Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Simpan ciri vektor wajah ke Sheet</p>
+            <p class="text-[11px] text-slate-400">Kamera imbasan utama dipausekan untuk proses pendaftaran</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -205,26 +193,27 @@
         </button>
       </div>
 
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1.5">No. ID / Staff ID</label>
-          <input type="text" id="regId" placeholder="cth: STF-101" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1.5">Nama Penuh</label>
-          <input type="text" id="regName" placeholder="cth: Ahmad Albab" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+      <!-- Kamera Preview Slot Dalam Modal -->
+      <div id="modalCameraSlot" class="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-black border border-slate-800 relative mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 border-2 border-indigo-500/40 rounded-2xl pointer-events-none z-10 m-2"></div>
+        <span id="modalCamStatus" class="text-xs text-slate-400">Live preview aktif...</span>
+      </div>
+
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff / Student ID</label>
+            <input type="text" id="regId" placeholder="cth: STF-101" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Nama Penuh</label>
+            <input type="text" id="regName" placeholder="cth: Ahmad Albab" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+          </div>
         </div>
 
-        <div class="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex gap-3 items-start">
-          <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Pastikan wajah berada di dalam kotak panduan kamera dan pandang tepat ke lensa sebelum tekan daftar.
-          </p>
-        </div>
-
-        <button id="captureFaceBtn" class="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
+        <button id="captureFaceBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
           <i data-lucide="camera" class="w-4 h-4"></i>
-          <span>Imbas Wajah & Simpan</span>
+          <span>Imbas Wajah & Simpan ke Sheets</span>
         </button>
       </div>
     </div>
@@ -237,10 +226,16 @@
     let faceMatcher = null;
     let registeredUsers = [];
     let isProcessingTransaction = false;
+    let isRegisteringMode = false;
     let verifiedSessionCount = 0;
     
     let lastFrameTime = performance.now();
     let frameCount = 0;
+
+    // AMBANG LIVENESS YANG DILARASKAN (TIDAK TERLALU KETAT)
+    const EAR_CLOSED_THRESHOLD = 0.23; // Mata dianggap tertutup jika EAR < 0.23
+    const EAR_OPEN_THRESHOLD = 0.25;   // Mata dibuka semula jika EAR > 0.25
+    const YAW_TURN_THRESHOLD = 1.65;   // Pusing sedikit ke kanan sudah trigger
 
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
     let currentLivenessState = LIVENESS.IDLE;
@@ -250,6 +245,8 @@
 
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
+    const cameraViewportContainer = document.getElementById("cameraViewportContainer");
+    const modalCameraSlot = document.getElementById("modalCameraSlot");
     const statusBadge = document.getElementById("statusBadge");
     const statusText = document.getElementById("statusText");
     const statusDot = document.getElementById("statusDot");
@@ -268,16 +265,11 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
-    const camFallbackOverlay = document.getElementById("camFallbackOverlay");
-    const camErrorDetails = document.getElementById("camErrorDetails");
-    const retryCamBtn = document.getElementById("retryCamBtn");
-
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
     const closeModal = document.getElementById("closeModal");
     const captureFaceBtn = document.getElementById("captureFaceBtn");
 
-    // Audio Engine
     const AudioEngine = {
       ctx: null,
       init() {
@@ -307,84 +299,56 @@
       }
     };
 
-    // 1. RESOLVER KAMERA FLEKSIBEL
     async function startCamera() {
-      // Semak jika browser menyokong mediaDevices
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Browser tidak menyokong getUserMedia. Pastikan anda akses melalui HTTPS atau http://localhost.");
+        throw new Error("Sila gunakan HTTPS atau http://localhost.");
       }
 
       let stream = null;
       try {
-        // Cuba standard HD
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
       } catch (err1) {
-        console.warn("Resolusi ideal ditolak, cuba parameter asas...", err1);
-        // Fallback parameter paling asas untuk sebarang webcam laptop/USB
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
       video.srcObject = stream;
 
-      // Tunggu stream dimuatkan sepenuhnya sebelum trigger AI
       return new Promise((resolve) => {
         video.onloadedmetadata = () => {
-          video.play().then(() => {
-            camFallbackOverlay.classList.add("hidden");
-            resolve(true);
-          }).catch(e => {
-            console.error("Video play failed:", e);
-            resolve(true);
-          });
+          video.play().then(() => resolve(true)).catch(() => resolve(true));
         };
       });
     }
 
-    // 2. INITIALIZER SISTEM
     async function init() {
       lucide.createIcons();
 
-      // Semak protokol HTTPS / Localhost
-      if (location.protocol === 'file:') {
-        failSystem("Ralat Protokol", "Browser menyekat kamera pada file://. Sila jalankan menggunakan VS Code Live Server atau GitHub Pages.");
-        return;
-      }
-
-      // Langkah 1: Buka Kamera Dahulu
       try {
-        statusText.innerText = "Menghubungkan Kamera...";
+        statusText.innerText = "Menyambung Kamera...";
         await startCamera();
       } catch (camErr) {
-        console.error("Camera Initializer Failed:", camErr);
-        camFallbackOverlay.classList.remove("hidden");
-        camErrorDetails.innerText = `Ralat Kamera (${camErr.name}): ${camErr.message || "Akses kamera disekat atau sedang digunakan oleh aplikasi lain."}`;
-        failSystem("Kamera Gagal", "Sila benarkan kebenaran kamera pada pelayar.");
+        failSystem("Kamera Gagal", "Sila benarkan akses kamera pelayar web anda.");
         return;
       }
 
-      // Langkah 2: Muat Turun Model AI
       try {
-        statusText.innerText = "Memuat Turun AI Models...";
-        systemNote.innerText = "Sedang memuat turun fail neural network...";
+        statusText.innerText = "Memuat AI Models...";
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
       } catch (modelErr) {
-        console.error("Model Error:", modelErr);
-        failSystem("Model AI Gagal", "Gagal memuat turun model face-api. Sila semak sambungan internet anda.");
+        failSystem("AI Model Gagal", "Gagal memuat fail neural network. Semak internet.");
         return;
       }
 
-      // Langkah 3: Sambung Google Sheet
-      statusText.innerText = "Menyambung Pangkalan Data...";
+      statusText.innerText = "Menyambung Database...";
       await syncUsers();
 
-      // Sistem Berjaya Dihidupkan
       statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
       pingDot.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
       mainDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
@@ -420,18 +384,16 @@
               return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
             });
             faceMatcher = new faceapi.FaceMatcher(labeled, 0.52);
-            systemNote.innerText = `${registeredUsers.length} profil wajah berjaya dimuatkan`;
+            systemNote.innerText = `${registeredUsers.length} profil dimuatkan`;
           } else {
             systemNote.innerText = "Pangkalan data kosong. Sila daftar pengguna baru.";
           }
         }
       } catch (err) {
-        console.warn("Sheet Connection Issue:", err);
-        systemNote.innerText = "Tidak dapat berhubung dengan Google Sheet. Mod luar talian.";
+        systemNote.innerText = "Mod luar talian.";
       }
     }
 
-    // Geometry Helpers
     function distance(p1, p2) {
       return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
@@ -482,7 +444,7 @@
       lucide.createIcons();
     }
 
-    // Loop Pengesanan Wajah
+    // MAIN PIPELINE
     function runDetectionPipeline() {
       const displaySize = { 
         width: video.videoWidth || video.clientWidth || 640, 
@@ -499,7 +461,9 @@
           lastFrameTime = now;
         }
 
-        if (isProcessingTransaction || !faceMatcher || video.paused || video.ended) return;
+        if (isRegisteringMode || isProcessingTransaction || !faceMatcher || video.paused || video.ended) {
+          return;
+        }
 
         const detection = await faceapi.detectSingleFace(video)
           .withFaceLandmarks()
@@ -531,15 +495,18 @@
         const landmarks = resized.landmarks.positions;
         const leftEye = landmarks.slice(36, 42);
         const rightEye = landmarks.slice(42, 48);
-        const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
+        const leftEAR = calculateEAR(leftEye);
+        const rightEAR = calculateEAR(rightEye);
+        const avgEAR = (leftEAR + rightEAR) / 2.0;
         const yaw = calculateYawRatio(landmarks);
 
-        handleLivenessChallenge(pId, pName, avgEAR, yaw);
+        // Hantar kedua-dua nilai mata untuk fleksibiliti pengesanan
+        handleLivenessChallenge(pId, pName, avgEAR, yaw, leftEAR, rightEAR);
 
       }, 140);
     }
 
-    function handleLivenessChallenge(id, name, ear, yaw) {
+    function handleLivenessChallenge(id, name, ear, yaw, leftEar, rightEar) {
       switch (currentLivenessState) {
         case LIVENESS.IDLE:
           targetSubject = { id, name };
@@ -549,10 +516,10 @@
 
           if (currentChallenge === 'BLINK') {
             setPrompt(true, `Hai ${name}, sila KELIPKAN MATA anda`, "eye");
-            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Aksi: Kelip Mata</span>`;
+            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Kelip Mata (EAR: ${ear.toFixed(2)})</span>`;
           } else {
             setPrompt(true, `Hai ${name}, pusing muka ke KANAN sedikit`, "arrow-right");
-            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Aksi: Pusing Kanan</span>`;
+            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Pusing Kanan (Yaw: ${yaw.toFixed(2)})</span>`;
           }
           lucide.createIcons();
 
@@ -562,19 +529,29 @@
               setPrompt(true, "Pengesahan Gagal: Masa Tamat", "alert-circle", true);
               setTimeout(resetLiveness, 2000);
             }
-          }, 6000);
+          }, 6500);
           break;
 
         case LIVENESS.PROMPT:
-          if (currentChallenge === 'BLINK' && ear < 0.19) {
-            currentLivenessState = LIVENESS.ACTION_DETECTED;
-          } else if (currentChallenge === 'TURN_RIGHT' && yaw > 1.9) {
-            currentLivenessState = LIVENESS.ACTION_DETECTED;
+          if (currentChallenge === 'BLINK') {
+            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Kelip Mata (EAR: ${ear.toFixed(2)})</span>`;
+            // Trigger jika purata mata ATAU salah satu mata capai ambang tutup
+            if (ear < EAR_CLOSED_THRESHOLD || leftEar < EAR_CLOSED_THRESHOLD || rightEar < EAR_CLOSED_THRESHOLD) {
+              currentLivenessState = LIVENESS.ACTION_DETECTED;
+              livenessPill.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Buka Mata Semula...</span>`;
+              lucide.createIcons();
+            }
+          } else if (currentChallenge === 'TURN_RIGHT') {
+            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Pusing Kanan (Yaw: ${yaw.toFixed(2)})</span>`;
+            if (yaw > YAW_TURN_THRESHOLD) {
+              currentLivenessState = LIVENESS.ACTION_DETECTED;
+            }
           }
           break;
 
         case LIVENESS.ACTION_DETECTED:
-          if (currentChallenge === 'BLINK' && ear > 0.25) {
+          // Pastikan mata dibuka semula selepas ditutup
+          if (currentChallenge === 'BLINK' && ear > EAR_OPEN_THRESHOLD) {
             verifyAndDispatch(id, name);
           } else if (currentChallenge === 'TURN_RIGHT') {
             verifyAndDispatch(id, name);
@@ -649,13 +626,29 @@
       attendanceContainer.prepend(item);
     }
 
-    // Event Listeners
-    retryCamBtn.addEventListener("click", () => {
-      init();
-    });
+    function openRegistrationMode() {
+      isRegisteringMode = true;
+      resetLiveness();
+      
+      const ctx = overlay.getContext("2d");
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-    toggleRegisterModal.addEventListener("click", () => registerModal.classList.remove("hidden"));
-    closeModal.addEventListener("click", () => registerModal.classList.add("hidden"));
+      modalCameraSlot.appendChild(video);
+      registerModal.classList.remove("hidden");
+    }
+
+    function closeRegistrationMode() {
+      isRegisteringMode = false;
+      registerModal.classList.add("hidden");
+      
+      cameraViewportContainer.insertBefore(video, overlay);
+      
+      document.getElementById("regId").value = "";
+      document.getElementById("regName").value = "";
+    }
+
+    toggleRegisterModal.addEventListener("click", openRegistrationMode);
+    closeModal.addEventListener("click", closeRegistrationMode);
 
     resyncBtn.addEventListener("click", async () => {
       resyncBtn.classList.add("animate-spin");
@@ -668,28 +661,34 @@
       const name = document.getElementById("regName").value.trim();
 
       if (!id || !name) {
-        alert("Sila masukkan No. ID dan Nama Penuh.");
+        alert("Sila masukkan kedua-dua ID dan Nama Penuh.");
         return;
       }
 
       captureFaceBtn.disabled = true;
-      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Menganalisis Ciri Muka...</span>`;
+      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Mengimbas Muka...</span>`;
       lucide.createIcons();
 
-      const detection = await faceapi.detectSingleFace(video)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (!detection) {
-        alert("Wajah tidak dapat dikesan. Sila pandang tepat pada kamera.");
-        captureFaceBtn.disabled = false;
-        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan</span>`;
-        lucide.createIcons();
-        return;
-      }
+      await new Promise(r => setTimeout(r, 200));
 
       try {
+        const detection = await faceapi.detectSingleFace(video)
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        if (!detection) {
+          alert("Wajah tidak dapat dikesan! Pastikan muka anda berada tepat di tengah kotak kamera preview.");
+          captureFaceBtn.disabled = false;
+          captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
+          lucide.createIcons();
+          return;
+        }
+
         const descriptorArray = Array.from(detection.descriptor);
+        
+        captureFaceBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Google Sheet...</span>`;
+        lucide.createIcons();
+
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -704,20 +703,18 @@
         const result = await res.json();
         if (result.status === "success") {
           AudioEngine.success();
-          alert(`Berjaya mendaftar ${name} (${id})`);
-          document.getElementById("regId").value = "";
-          document.getElementById("regName").value = "";
-          registerModal.classList.add("hidden");
+          alert(`Pendaftaran Berjaya: ${name} (${id})`);
+          closeRegistrationMode();
           await syncUsers();
         } else {
-          alert("Ralat pendaftaran: " + (result.message || "Ralat tidak diketahui"));
+          alert("Ralat dari Google Sheet: " + (result.message || "Gagal"));
         }
       } catch (err) {
         console.error(err);
-        alert("Gagal menghantar data ke Google Apps Script.");
+        alert("Ralat semasa mendaftar: " + err.message);
       } finally {
         captureFaceBtn.disabled = false;
-        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan</span>`;
+        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
         lucide.createIcons();
       }
     });
