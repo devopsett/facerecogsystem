@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Recognition Attendance</title>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .glassmorphism {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4">
+
+  <!-- Header -->
+  <header class="w-full max-w-4xl py-4 flex justify-between items-center border-b border-slate-800 mb-6">
+    <h1 class="text-xl font-semibold tracking-tight text-indigo-400">ScanFace Attendance</h1>
+    <div id="connectionStatus" class="text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+      Loading Models...
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <!-- Camera Viewport (Left/Center) -->
+    <section class="md:col-span-2 glassmorphism rounded-2xl p-4 flex flex-col items-center relative overflow-hidden shadow-2xl">
+      <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-black flex items-center justify-center">
+        <video id="video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+        <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+      </div>
+
+      <div class="w-full flex items-center justify-between mt-4 px-2">
+        <span id="scanLog" class="text-sm font-medium text-slate-300">Ready to recognize</span>
+        <button id="toggleModeBtn" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition">
+          Switch to Register Mode
+        </button>
+      </div>
+    </section>
+
+    <!-- Controls & Logs (Right) -->
+    <section class="flex flex-col gap-6">
+      <!-- Registration Card -->
+      <div id="registerPanel" class="hidden glassmorphism rounded-2xl p-5 border border-indigo-500/30">
+        <h3 class="text-sm font-semibold text-indigo-300 mb-3 uppercase tracking-wider">Register Person</h3>
+        <div class="space-y-3">
+          <input type="text" id="regId" placeholder="Staff/Student ID" class="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+          <input type="text" id="regName" placeholder="Full Name" class="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+          <button id="captureRegisterBtn" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-medium rounded-lg transition">
+            Capture & Save Face
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Attendance Feed -->
+      <div class="glassmorphism rounded-2xl p-5 flex-1 flex flex-col">
+        <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">Live Log</h3>
+        <div id="attendanceList" class="flex-1 overflow-y-auto space-y-2 text-xs max-h-72 pr-1">
+          <p class="text-slate-500 italic">No attendance marked yet.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Replace with your Google Apps Script Web App URL
+    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+    const MODEL_URL = "https://cdn.jsdelivr.net/gh/cadenmarchese/face-api-models@master";
+
+    let faceMatcher = null;
+    let registeredUsers = [];
+    let isRegistering = false;
+    let recognitionInterval = null;
+
+    const video = document.getElementById("video");
+    const overlay = document.getElementById("overlay");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const scanLog = document.getElementById("scanLog");
+    const toggleModeBtn = document.getElementById("toggleModeBtn");
+    const registerPanel = document.getElementById("registerPanel");
+    const attendanceList = document.getElementById("attendanceList");
+
+    // Initialize Camera and AI Models
+    async function init() {
+      try {
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+
+        connectionStatus.innerText = "Connecting to DB...";
+        await syncUsers();
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        video.srcObject = stream;
+
+        connectionStatus.className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        connectionStatus.innerText = "System Active";
+
+        startRecognition();
+      } catch (err) {
+        console.error(err);
+        connectionStatus.className = "text-xs px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30";
+        connectionStatus.innerText = "Init Failed";
+      }
+    }
+
+    // Fetch registered descriptors from Google Apps Script
+    async function syncUsers() {
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getUsers`);
+        const result = await res.json();
+        if (result.status === "success" && result.users.length > 0) {
+          registeredUsers = result.users;
+          const labeledDescriptors = registeredUsers.map(u => {
+            const descArray = new Float32Array(u.descriptor);
+            return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descArray]);
+          });
+          faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // 0.55 Euclidean distance threshold
+        }
+      } catch (err) {
+        console.error("Failed to load user descriptors:", err);
+      }
+    }
+
+    // Continuous Real-Time Detection Loop
+    function startRecognition() {
+      const displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
+      faceapi.matchDimensions(overlay, displaySize);
+
+      recognitionInterval = setInterval(async () => {
+        if (isRegistering || !faceMatcher) return;
+
+        const detections = await faceapi.detectAllFaces(video)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        const ctx = overlay.getContext("2d");
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        resizedDetections.forEach(detection => {
+          const match = faceMatcher.findBestMatch(detection.descriptor);
+          const box = detection.detection.box;
+          
+          // Draw bounding box
+          new faceapi.draw.DrawBox(box, { 
+            label: match.toString(), 
+            boxColor: match.label.includes("unknown") ? "#ef4444" : "#10b981" 
+          }).draw(overlay);
+
+          if (!match.label.includes("unknown")) {
+            const matchParts = match.label.match(/(.*) \((.*)\)/);
+            if (matchParts) {
+              const name = matchParts[1];
+              const id = matchParts[2];
+              markAttendance(id, name);
+            }
+          }
+        });
+      }, 700);
+    }
+
+    // Record attendance to Google Apps Script
+    async function markAttendance(id, name) {
+      scanLog.innerText = `Recognized: ${name}. Sending...`;
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" }, // Avoid CORS preflight on Apps Script
+          body: JSON.stringify({
+            action: "recordAttendance",
+            id: id,
+            name: name,
+            type: "Check-In"
+          })
+        });
+        const result = await res.json();
+        
+        if (result.status === "success") {
+          addAttendanceLog(name, "Check-In", new Date().toLocaleTimeString());
+          scanLog.innerText = `Success: ${name} recorded!`;
+        } else if (result.status === "skipped") {
+          scanLog.innerText = `Cooldown: ${name} already marked.`;
+        }
+      } catch (err) {
+        console.error("Attendance submission error:", err);
+      }
+    }
+
+    function addAttendanceLog(name, type, time) {
+      if (attendanceList.querySelector("p")) {
+        attendanceList.innerHTML = "";
+      }
+      const item = document.createElement("div");
+      item.className = "flex justify-between items-center bg-slate-900/60 p-2 rounded-lg border border-slate-800";
+      item.innerHTML = `<div><span class="font-medium text-slate-200">${name}</span> <span class="text-indigo-400">(${type})</span></div><span class="text-slate-500">${time}</span>`;
+      attendanceList.prepend(item);
+    }
+
+    // Toggle between scanning & registration mode
+    toggleModeBtn.addEventListener("click", () => {
+      isRegistering = !isRegistering;
+      registerPanel.classList.toggle("hidden", !isRegistering);
+      toggleModeBtn.innerText = isRegistering ? "Back to Scanner" : "Switch to Register Mode";
+      scanLog.innerText = isRegistering ? "Registration Mode active." : "Ready to recognize";
+      const ctx = overlay.getContext("2d");
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+    });
+
+    // Capture & Register a face
+    document.getElementById("captureRegisterBtn").addEventListener("click", async () => {
+      const id = document.getElementById("regId").value.trim();
+      const name = document.getElementById("regName").value.trim();
+
+      if (!id || !name) {
+        alert("Please enter ID and Name");
+        return;
+      }
+
+      scanLog.innerText = "Detecting face for registration...";
+      const detection = await faceapi.detectSingleFace(video)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        alert("No face detected! Look directly at the camera and ensure good lighting.");
+        return;
+      }
+
+      // Convert Float32Array to plain array for JSON transfer
+      const descriptor = Array.from(detection.descriptor);
+
+      try {
+        scanLog.innerText = "Registering user to Google Sheets...";
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "register",
+            id: id,
+            name: name,
+            descriptor: descriptor
+          })
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          alert(`Success! ${name} is registered.`);
+          document.getElementById("regId").value = "";
+          document.getElementById("regName").value = "";
+          await syncUsers(); // Refresh face matcher
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Registration failed. Check browser console.");
+      }
+    });
+
+    window.addEventListener("load", init);
+  </script>
+</body>
+</html>
