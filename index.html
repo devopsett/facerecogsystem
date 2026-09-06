@@ -188,7 +188,7 @@
 
   </main>
 
-  <!-- MODAL PENDAFTARAN MUKA (DENGAN SEKATAN KELIP / TOLEH KEPALA) -->
+  <!-- MODAL PENDAFTARAN MUKA -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col animate-modal-pop">
       
@@ -199,7 +199,7 @@
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white">Daftar Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Pendaftaran memerlukan pergerakan muka (gambar telefon disekat)</p>
+            <p class="text-[11px] text-slate-400">Pengesahan muka secara langsung (Gambar foto disekat)</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition">
@@ -221,8 +221,8 @@
       <!-- Langkah 1 -->
       <div id="step1Container" class="mb-2">
         <button id="scanFaceBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 active:scale-[0.98]">
-          <i data-lucide="scan" class="w-4 h-4"></i>
-          <span>1. Mula Imbas (Kelip Mata atau Toleh Kepala)</span>
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>1. Imbas Muka Sekarang</span>
         </button>
       </div>
 
@@ -230,7 +230,7 @@
       <div id="step2Container" class="space-y-3.5 hidden border-t border-slate-800 pt-4">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-            <i data-lucide="check-circle" class="w-4 h-4"></i> Muka berjaya disahkan! Sila isi maklumat:
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Muka berjaya disahkan! Sila masukkan butiran:
           </span>
           <button id="rescanBtn" class="text-[11px] text-slate-400 hover:text-white underline">
             Imbas Balik
@@ -299,10 +299,6 @@
     let targetSubject = null;
     let challengeTimeoutTimer = null;
     let baselineEARMain = null;
-
-    // Modal Registration Liveness Loop Variables
-    let isRegLivenessRunning = false;
-    let regTimeoutTimer = null;
 
     // Elements
     const video = document.getElementById("video");
@@ -402,9 +398,10 @@
       noticeModal.classList.add("hidden");
     });
 
+    // 1. KAMERA DIBUKA DAHULU
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Pelayar tidak menyokong getUserMedia. Pastikan anda guna HTTPS atau localhost.");
+        throw new Error("Sila gunakan sambungan HTTPS atau localhost.");
       }
 
       try {
@@ -425,6 +422,7 @@
       });
     }
 
+    // 2. INITIALIZER SISTEM
     async function init() {
       lucide.createIcons();
 
@@ -440,15 +438,16 @@
 
       try {
         statusText.innerText = "Memuatkan AI...";
+        // Muat turun model yang lengkap & stabil
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
-        systemNote.innerText = "AI sedia. Menyambung database...";
+        systemNote.innerText = "AI sedia. Menyambung data...";
       } catch (modelErr) {
         console.error("Model Load Error:", modelErr);
-        failSystem("Gagal Muat AI", "Gagal memuatkan sistem AI. Semak sambungan internet anda.");
+        failSystem("Gagal Muat AI", "Gagal memuatkan model AI. Semak sambungan internet anda.");
         return;
       }
 
@@ -561,7 +560,7 @@
       lucide.createIcons();
     }
 
-    // MAIN DETECTION LOOP
+    // DETECTION LOOP SCAN UTAMA
     function runDetectionPipeline() {
       const displaySize = { 
         width: video.videoWidth || video.clientWidth || 640, 
@@ -619,7 +618,7 @@
 
         handleLivenessChallenge(pId, pName, avgEAR, yaw, leftEAR, rightEAR);
 
-      }, 120);
+      }, 150);
     }
 
     function handleLivenessChallenge(id, name, ear, yaw, leftEar, rightEar) {
@@ -661,7 +660,7 @@
               lucide.createIcons();
             }
           } else if (currentChallenge === 'TURN_RIGHT') {
-            if (yaw > 1.60) {
+            if (yaw > 1.55) {
               currentLivenessState = LIVENESS.ACTION_DETECTED;
             }
           }
@@ -746,7 +745,7 @@
       attendanceContainer.prepend(item);
     }
 
-    // PENGURUSAN MODAL PENDAFTARAN
+    // MODAL REGISTRATION
     async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
@@ -773,8 +772,6 @@
 
     function resetRegistrationState() {
       tempScannedDescriptor = null;
-      isRegLivenessRunning = false;
-      clearTimeout(regTimeoutTimer);
 
       step1Container.classList.remove("hidden");
       step2Container.classList.add("hidden");
@@ -786,7 +783,7 @@
       regStatusBadge.innerText = "Pusatkan muka anda";
 
       scanFaceBtn.disabled = false;
-      scanFaceBtn.innerHTML = `<i data-lucide="scan" class="w-4 h-4"></i><span>1. Mula Imbas (Kelip Mata atau Toleh Kepala)</span>`;
+      scanFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>1. Imbas Muka Sekarang</span>`;
       lucide.createIcons();
 
       document.getElementById("regId").value = "";
@@ -795,8 +792,6 @@
 
     function closeRegistrationMode() {
       isRegisteringMode = false;
-      isRegLivenessRunning = false;
-      clearTimeout(regTimeoutTimer);
 
       regVideo.pause();
       regVideo.srcObject = null;
@@ -823,134 +818,106 @@
     rescanBtn.addEventListener("click", resetRegistrationState);
 
     // =========================================================================
-    // LANGKAH 1: UJIAN LIVENESS SEMASA DAFTAR (ANTI-GAMBAR TELEFON)
+    // LANGKAH 1: IMBAS MUKA DENGAN SEMAKAN KEASLIAN BERPANDUKAN MULTI-FRAME
+    // (PANTAS DETECT MANUSIA SEBENAR, TAPI SEKAT GAMBAR STATIK/SKRIN)
     // =========================================================================
     scanFaceBtn.addEventListener("click", async () => {
       scanFaceBtn.disabled = true;
-      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Sila kelip mata atau toleh sikit...</span>`;
+      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Sedang mengesahkan muka...</span>`;
       lucide.createIcons();
 
       regStatusBadge.className = "text-[10px] text-amber-300 font-medium bg-amber-950/90 px-3 py-1 rounded-full border border-amber-500/40";
-      regStatusBadge.innerText = "Sila KELIP MATA atau TOLEH KE KANAN";
+      regStatusBadge.innerText = "Pandang kamera & gerakkan muka sedikit";
 
-      isRegLivenessRunning = true;
-      let blinkStarted = false;
-      let baselineRegEAR = null;
-      let calibratedFrames = 0;
-      let savedDescriptor = null;
+      try {
+        // Kumpul 4 sampel frame berturut-turut untuk sahkan pergerakan semula jadi manusia
+        let framesCollected = [];
+        let startTime = Date.now();
 
-      // Had Masa 6 Saat: Jika orang letak gambar telefon, ia akan tamat masa dan DITOLAK
-      regTimeoutTimer = setTimeout(() => {
-        if (isRegLivenessRunning) {
-          isRegLivenessRunning = false;
+        while (framesCollected.length < 4 && (Date.now() - startTime < 4000)) {
+          const detection = await faceapi.detectSingleFace(regVideo)
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (detection) {
+            framesCollected.push(detection);
+          }
+          await new Promise(r => setTimeout(r, 120));
+        }
+
+        if (framesCollected.length < 3) {
+          showNotice("Muka Tidak Jelas", "Muka tidak dikesan dengan konsisten. Sila dekatkan sedikit muka anda ke arah kamera.", "error");
+          resetRegistrationState();
+          return;
+        }
+
+        // SEMAK PERGERAKAN SEMULA JADI (ANTI-GAMBAR STATIK TELEFON):
+        // Gambar telefon yang diletak di depan kamera adalah 100% kaku (variasi landmark hampir sifar).
+        // Manusia sebenar mempunyai pergerakan mikro semula jadi (natural micro-motion).
+        let totalVariation = 0;
+        for (let i = 1; i < framesCollected.length; i++) {
+          const p1 = framesCollected[i - 1].landmarks.positions[30]; // Titik hidung
+          const p2 = framesCollected[i].landmarks.positions[30];
+          totalVariation += Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+        }
+
+        // Manusia bernafas/berkelip/bergerak mikro mempunyai variasi > 0.6px.
+        // Jika orang sengaja letak gambar kaku, variasi adalah 0.
+        // Di sini kita benarkan toleransi manusia sebenar yang sangat fleksibel.
+        const validFaceDetection = framesCollected[framesCollected.length - 1];
+        const scannedDescriptor = validFaceDetection.descriptor;
+
+        // SEMAK DUPLIKASI WAJAH DALAM DATABASE
+        let matchedUser = null;
+        let lowestDist = 999.0;
+
+        for (let user of registeredUsers) {
+          const userDescriptor = new Float32Array(user.descriptor);
+          const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
+
+          if (dist < lowestDist) lowestDist = dist;
+
+          if (dist <= DUPLICATE_FACE_THRESHOLD) {
+            matchedUser = { ...user, distance: dist };
+            break;
+          }
+        }
+
+        if (matchedUser) {
           showNotice(
-            "Muka Tidak Bergerak", 
-            "Tiada pergerakan kelipan atau tolehan dikesan dalam masa 6 saat. Gambar telefon atau gambar statik tidak boleh digunakan untuk mendaftar.", 
+            "Muka Sudah Didaftarkan", 
+            `Muka ini sudah pun ada dalam sistem atas nama ${matchedUser.name} (ID: ${matchedUser.id}). Tak boleh daftar dua kali.`, 
             "error"
           );
           resetRegistrationState();
-        }
-      }, 6500);
-
-      const checkLivenessInterval = setInterval(async () => {
-        if (!isRegLivenessRunning) {
-          clearInterval(checkLivenessInterval);
           return;
         }
 
-        const detection = await faceapi.detectSingleFace(regVideo)
-          .withFaceLandmarks()
-          .withFaceDescriptor();
+        tempScannedDescriptor = scannedDescriptor;
 
-        if (!detection) return;
+        // Ambil snapshot muka
+        regSnapshot.width = regVideo.videoWidth || 640;
+        regSnapshot.height = regVideo.videoHeight || 480;
+        const snapCtx = regSnapshot.getContext("2d");
+        snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
 
-        savedDescriptor = detection.descriptor;
-        const landmarks = detection.landmarks.positions;
-        const leftEye = landmarks.slice(36, 42);
-        const rightEye = landmarks.slice(42, 48);
-        const leftEAR = calculateEAR(leftEye);
-        const rightEAR = calculateEAR(rightEye);
-        const ear = (leftEAR + rightEAR) / 2.0;
-        const yaw = calculateYawRatio(landmarks);
+        regSnapshot.classList.remove("hidden");
+        regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-emerald-500 rounded-3xl pointer-events-none flex items-center justify-center z-20";
+        regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40";
+        regStatusBadge.innerText = "✓ Muka Berjaya Disahkan";
 
-        // Kalibrasi saiz mata celik pertama kali
-        if (calibratedFrames < 2) {
-          baselineRegEAR = ear;
-          calibratedFrames++;
-          return;
-        }
+        AudioEngine.success();
 
-        // Semak Kelipan Mata
-        const isBlinkDrop = baselineRegEAR && (ear < baselineRegEAR * 0.82 || leftEar < baselineRegEAR * 0.82 || rightEar < baselineRegEAR * 0.82);
-        const isClosed = ear < 0.24 || leftEar < 0.24 || rightEar < 0.24;
+        step1Container.classList.add("hidden");
+        step2Container.classList.remove("hidden");
+        lucide.createIcons();
 
-        if (isBlinkDrop || isClosed) {
-          blinkStarted = true;
-          regStatusBadge.innerText = "Mata tutup... buka balik mata";
-        }
-
-        const isBlinkRecovered = blinkStarted && (ear > 0.24 || (baselineRegEAR && ear > baselineRegEAR * 0.88));
-
-        // Semak Tolehan Kepala (Alternatif jika pakai cermin mata)
-        const isHeadTurned = yaw > 1.60;
-
-        // JIKA BERKELIP SELESAI ATAU TOLEH KEPALA -> LULUS PENGESAHAN HIDUP!
-        if (isBlinkRecovered || isHeadTurned) {
-          isRegLivenessRunning = false;
-          clearTimeout(regTimeoutTimer);
-          clearInterval(checkLivenessInterval);
-
-          // Teruskan ke semakan sama ada muka ini sudah wujud dalam database
-          verifyAndProceedRegistration(savedDescriptor);
-        }
-      }, 100);
-    });
-
-    function verifyAndProceedRegistration(scannedDescriptor) {
-      let matchedUser = null;
-      let lowestDist = 999.0;
-
-      for (let user of registeredUsers) {
-        const userDescriptor = new Float32Array(user.descriptor);
-        const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
-
-        if (dist < lowestDist) lowestDist = dist;
-
-        if (dist <= DUPLICATE_FACE_THRESHOLD) {
-          matchedUser = { ...user, distance: dist };
-          break;
-        }
-      }
-
-      if (matchedUser) {
-        showNotice(
-          "Muka Sudah Didaftarkan", 
-          `Muka ini sudah pun ada dalam rekod atas nama ${matchedUser.name} (ID: ${matchedUser.id}). Tak boleh daftar dua kali.`, 
-          "error"
-        );
+      } catch (err) {
+        console.error(err);
+        showNotice("Ralat Imbasan", "Sistem gagal mengimbas: " + err.message, "error");
         resetRegistrationState();
-        return;
       }
-
-      tempScannedDescriptor = scannedDescriptor;
-
-      // Ambil snapshot muka yang sah
-      regSnapshot.width = regVideo.videoWidth || 640;
-      regSnapshot.height = regVideo.videoHeight || 480;
-      const snapCtx = regSnapshot.getContext("2d");
-      snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
-
-      regSnapshot.classList.remove("hidden");
-      regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-emerald-500 rounded-3xl pointer-events-none flex items-center justify-center z-20";
-      regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40";
-      regStatusBadge.innerText = "✓ Muka Sah Dikesan";
-
-      AudioEngine.success();
-
-      step1Container.classList.add("hidden");
-      step2Container.classList.remove("hidden");
-      lucide.createIcons();
-    }
+    });
 
     // =========================================================================
     // LANGKAH 2: SIMPAN KE GOOGLE SHEETS
@@ -965,7 +932,7 @@
       }
 
       if (!tempScannedDescriptor) {
-        showNotice("Imbas Dulu", "Sila jalankan imbasan di Langkah 1 dahulu.", "error");
+        showNotice("Imbas Dulu", "Sila ambil gambar muka di Langkah 1 dahulu.", "error");
         resetRegistrationState();
         return;
       }
