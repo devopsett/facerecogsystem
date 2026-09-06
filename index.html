@@ -97,10 +97,10 @@
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
           <!-- Paused Overlay Semasa Daftar -->
-          <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 hidden z-20">
+          <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center gap-2 hidden z-20">
             <i data-lucide="pause-circle" class="w-10 h-10 text-indigo-400 animate-pulse"></i>
-            <span class="text-xs font-semibold text-slate-300">Kamera Imbasan Utama Dijeda</span>
-            <span class="text-[11px] text-slate-500">Pendaftaran sedang berlangsung di modal</span>
+            <span class="text-xs font-semibold text-slate-300">Kamera Utama Dijeda</span>
+            <span class="text-[11px] text-slate-500">Pendaftaran sedang berlangsung di tetingkap modal</span>
           </div>
 
           <div id="scannerLine" class="scanner-line hidden pointer-events-none"></div>
@@ -181,7 +181,7 @@
 
   </main>
 
-  <!-- MODAL: DAFTAR WAJAH BARU -->
+  <!-- MODAL: DAFTAR WAJAH BARU (ALIRAN 2-LANGKAH: SCAN DULU BARU SIMPAN) -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
     <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col">
       
@@ -191,8 +191,8 @@
             <i data-lucide="user-plus" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white">Pendaftaran Muka Baru</h3>
-            <p class="text-[11px] text-slate-400">Enjin Anti-Duplikasi ID & Vektor Muka Aktif</p>
+            <h3 class="text-sm font-semibold text-white">Pendaftaran Wajah Baharu</h3>
+            <p class="text-[11px] text-slate-400">Langkah 1: Imbas Muka • Langkah 2: Simpan Rekod</p>
           </div>
         </div>
         <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
@@ -201,18 +201,38 @@
       </div>
 
       <!-- Kamera Preview Slot Dalam Modal -->
-      <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700 relative mb-4 flex items-center justify-center">
+      <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700 relative mb-3 flex items-center justify-center">
         <video id="regVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
-        <canvas id="regOverlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+        
+        <!-- Snapshot Frame Semasa Berjaya Diimbas -->
+        <canvas id="regSnapshot" class="absolute inset-0 w-full h-full object-cover scale-x-[-1] hidden z-10"></canvas>
 
-        <div class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center">
-          <span class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30">
+        <div id="regReticle" class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20">
+          <span id="regStatusBadge" class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30">
             Pusatkan Wajah Anda
           </span>
         </div>
       </div>
 
-      <div class="space-y-3">
+      <!-- Butang Langkah 1: Imbas Muka Dulu -->
+      <div id="step1Container" class="mb-4">
+        <button id="scanFaceBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
+          <i data-lucide="scan" class="w-4 h-4"></i>
+          <span>1. Imbas Ciri Muka & Semak Duplikasi</span>
+        </button>
+      </div>
+
+      <!-- Langkah 2: Borang & Butang Simpan (Hanya dipaparkan selepas scan lulus) -->
+      <div id="step2Container" class="space-y-3 hidden border-t border-slate-800/80 pt-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Wajah Sah Dikesan! Sila isi maklumat:
+          </span>
+          <button id="rescanBtn" class="text-[11px] text-slate-400 hover:text-white underline">
+            Imbas Semula
+          </button>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff / Student ID</label>
@@ -224,11 +244,12 @@
           </div>
         </div>
 
-        <button id="captureFaceBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
-          <i data-lucide="camera" class="w-4 h-4"></i>
-          <span>Imbas Wajah & Simpan ke Sheets</span>
+        <button id="saveRecordBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-[0.98]">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span>2. Simpan Rekod ke Database</span>
         </button>
       </div>
+
     </div>
   </div>
 
@@ -243,6 +264,9 @@
     let isRegisteringMode = false;
     let verifiedSessionCount = 0;
     
+    // Variabel simpan descriptor sementara selepas scan langkah 1
+    let tempScannedDescriptor = null;
+
     let lastFrameTime = performance.now();
     let frameCount = 0;
 
@@ -250,7 +274,7 @@
     const EAR_OPEN_THRESHOLD = 0.25;
     const YAW_TURN_THRESHOLD = 1.65;
 
-    // Jarak Euclidean bawah 0.55 bermakna orang yang sama
+    // Ambang duplikasi ketat (Euclidean distance <= 0.55 bermakna orang yang sama)
     const DUPLICATE_FACE_THRESHOLD = 0.55; 
 
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
@@ -259,6 +283,7 @@
     let targetSubject = null;
     let challengeTimeoutTimer = null;
 
+    // DOM Elements Utama
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const pausedOverlay = document.getElementById("pausedOverlay");
@@ -280,11 +305,20 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
+    // DOM Elements Modal
     const regVideo = document.getElementById("regVideo");
+    const regSnapshot = document.getElementById("regSnapshot");
+    const regReticle = document.getElementById("regReticle");
+    const regStatusBadge = document.getElementById("regStatusBadge");
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
     const closeModal = document.getElementById("closeModal");
-    const captureFaceBtn = document.getElementById("captureFaceBtn");
+    
+    const step1Container = document.getElementById("step1Container");
+    const scanFaceBtn = document.getElementById("scanFaceBtn");
+    const step2Container = document.getElementById("step2Container");
+    const saveRecordBtn = document.getElementById("saveRecordBtn");
+    const rescanBtn = document.getElementById("rescanBtn");
 
     const AudioEngine = {
       ctx: null,
@@ -398,7 +432,6 @@
               const descriptorArray = new Float32Array(u.descriptor);
               return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
             });
-            // Gunakan 0.55 supaya pengecaman lebih stabil
             faceMatcher = new faceapi.FaceMatcher(labeled, 0.55);
             systemNote.innerText = `${registeredUsers.length} profil dimuatkan`;
           } else {
@@ -411,7 +444,7 @@
       }
     }
 
-    // FORMULA EUCLIDEAN DISTANCE ANTARA DUA VEKTOR 128-FLOAT
+    // Kira jarak Euclidean antara 2 vektor 128-float
     function computeVectorDistance(desc1, desc2) {
       let sum = 0;
       for (let i = 0; i < desc1.length; i++) {
@@ -649,6 +682,7 @@
       attendanceContainer.prepend(item);
     }
 
+    // Buka Modal Pendaftaran
     async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
@@ -660,6 +694,7 @@
       const ctx = overlay.getContext("2d");
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
+      resetRegistrationState();
       registerModal.classList.remove("hidden");
 
       if (mediaStream) {
@@ -667,9 +702,25 @@
         try {
           await regVideo.play();
         } catch (e) {
-          console.warn("Reg video auto-play warning:", e);
+          console.warn("Reg video play warning:", e);
         }
       }
+    }
+
+    // Reset keadaan modal ke Langkah 1
+    function resetRegistrationState() {
+      tempScannedDescriptor = null;
+      step1Container.classList.remove("hidden");
+      step2Container.classList.add("hidden");
+      regSnapshot.classList.add("hidden");
+      regVideo.classList.remove("hidden");
+      
+      regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20";
+      regStatusBadge.className = "text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30";
+      regStatusBadge.innerText = "Pusatkan Wajah Anda";
+
+      document.getElementById("regId").value = "";
+      document.getElementById("regName").value = "";
     }
 
     function closeRegistrationMode() {
@@ -684,8 +735,7 @@
       scannerLine.classList.remove("hidden");
       video.play().catch(e => console.warn("Main video resume warning:", e));
 
-      document.getElementById("regId").value = "";
-      document.getElementById("regName").value = "";
+      resetRegistrationState();
     }
 
     toggleRegisterModal.addEventListener("click", openRegistrationMode);
@@ -697,28 +747,14 @@
       resyncBtn.classList.remove("animate-spin");
     });
 
+    rescanBtn.addEventListener("click", resetRegistrationState);
+
     // =========================================================================
-    // DAFTAR MUKA: SEMAKAN KETAT VEKTOR & ID DUPLIKAT
+    // LANGKAH 1: IMBAS CIRI MUKA DULU & SEMAK DUPLIKASI
     // =========================================================================
-    captureFaceBtn.addEventListener("click", async () => {
-      const id = document.getElementById("regId").value.trim();
-      const name = document.getElementById("regName").value.trim();
-
-      if (!id || !name) {
-        alert("Sila masukkan kedua-dua ID dan Nama Penuh.");
-        return;
-      }
-
-      // 1. SEMAKAN ID DUPLIKAT TERLEBIH DAHULU
-      const idExists = registeredUsers.find(u => u.id.toLowerCase() === id.toLowerCase());
-      if (idExists) {
-        AudioEngine.alert();
-        alert(`SEKATAN ID: ID '${id}' sudah didaftarkan kepada ${idExists.name}! Sila gunakan ID lain.`);
-        return;
-      }
-
-      captureFaceBtn.disabled = true;
-      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Memeriksa Keaslian Vektor Muka...</span>`;
+    scanFaceBtn.addEventListener("click", async () => {
+      scanFaceBtn.disabled = true;
+      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Menganalisis & Menyemak Wajah...</span>`;
       lucide.createIcons();
 
       try {
@@ -727,48 +763,101 @@
           .withFaceDescriptor();
 
         if (!detection) {
-          alert("Wajah tidak dapat dikesan! Pastikan muka anda berada tepat di tengah kotak kamera.");
-          captureFaceBtn.disabled = false;
-          captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
-          lucide.createIcons();
+          AudioEngine.alert();
+          alert("Wajah tidak dikesan dengan jelas!\nSila pastikan muka anda berada tepat di dalam kotak panduan.");
           return;
         }
 
-        const newDescriptor = detection.descriptor; // Float32Array 128-dim
+        const scannedDescriptor = detection.descriptor;
 
-        // 2. SEMAKAN DUPLIKASI MUKA DENGAN SEMUA PENGGUNA BERDAFTAR
+        // SEMAK DUPLIKASI: Bandingkan dengan semua pengguna sedia ada
         let matchedUser = null;
         let lowestDist = 999.0;
 
         for (let user of registeredUsers) {
           const userDescriptor = new Float32Array(user.descriptor);
-          const dist = computeVectorDistance(newDescriptor, userDescriptor);
+          const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
 
           if (dist < lowestDist) {
             lowestDist = dist;
           }
 
-          // Jika jarak <= 0.55, bermakna ini orang yang sama!
           if (dist <= DUPLICATE_FACE_THRESHOLD) {
             matchedUser = { ...user, distance: dist };
             break;
           }
         }
 
+        // JIKA MUKA SUDAH WUJUD, SEKAT SERTA-MERTA
         if (matchedUser) {
           AudioEngine.alert();
-          alert(`SEKATAN WAJAH DUPLIKAT!\n\nWajah anda telah didaftarkan dalam sistem sebagai:\nNama: ${matchedUser.name}\nID: ${matchedUser.id}\n(Jarak Ketepatan: ${matchedUser.distance.toFixed(3)})\n\nPendaftaran berulang kali adalah dilarang!`);
-          captureFaceBtn.disabled = false;
-          captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
-          lucide.createIcons();
+          alert(`SEKATAN WAJAH SUDAH WUJUD!\n\nMuka anda telah pun didaftarkan sebelum ini:\nNama: ${matchedUser.name}\nID: ${matchedUser.id}\n(Jarak Ketepatan: ${matchedUser.distance.toFixed(3)})\n\nPendaftaran dibatalkan.`);
           return;
         }
 
-        // 3. JIKA LULUS SEMUA SEMAKAN, HANTAR KE GOOGLE APPS SCRIPT
-        const descriptorArray = Array.from(newDescriptor);
-        
-        captureFaceBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Google Sheet...</span>`;
+        // JIKA MUKA BARU & BELUM WUJUD: Ambil snapshot visual muka
+        tempScannedDescriptor = scannedDescriptor;
+
+        regSnapshot.width = regVideo.videoWidth || 640;
+        regSnapshot.height = regVideo.videoHeight || 480;
+        const snapCtx = regSnapshot.getContext("2d");
+        snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
+
+        // Bekukan paparan kamera dengan snapshot
+        regSnapshot.classList.remove("hidden");
+        regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-emerald-500 rounded-3xl pointer-events-none flex items-center justify-center z-20";
+        regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-2.5 py-1 rounded-full border border-emerald-500/40";
+        regStatusBadge.innerText = "✓ Wajah Berjaya Diimbas";
+
+        AudioEngine.success();
+
+        // Sembunyikan langkah 1, buka langkah 2
+        step1Container.classList.add("hidden");
+        step2Container.classList.remove("hidden");
         lucide.createIcons();
+
+      } catch (err) {
+        console.error(err);
+        alert("Ralat semasa mengimbas muka: " + err.message);
+      } finally {
+        scanFaceBtn.disabled = false;
+        scanFaceBtn.innerHTML = `<i data-lucide="scan" class="w-4 h-4"></i><span>1. Imbas Ciri Muka & Semak Duplikasi</span>`;
+        lucide.createIcons();
+      }
+    });
+
+    // =========================================================================
+    // LANGKAH 2: SIMPAN REKOD KE GOOGLE SHEETS
+    // =========================================================================
+    saveRecordBtn.addEventListener("click", async () => {
+      const id = document.getElementById("regId").value.trim();
+      const name = document.getElementById("regName").value.trim();
+
+      if (!id || !name) {
+        alert("Sila isi No. ID dan Nama Penuh terlebih dahulu.");
+        return;
+      }
+
+      if (!tempScannedDescriptor) {
+        alert("Sila imbas muka anda terlebih dahulu di Langkah 1!");
+        resetRegistrationState();
+        return;
+      }
+
+      // Semak ID duplikat
+      const idExists = registeredUsers.find(u => u.id.toLowerCase() === id.toLowerCase());
+      if (idExists) {
+        AudioEngine.alert();
+        alert(`SEKATAN ID: ID '${id}' sudah wujud didaftarkan kepada ${idExists.name}! Sila gunakan ID lain.`);
+        return;
+      }
+
+      saveRecordBtn.disabled = true;
+      saveRecordBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Google Sheet...</span>`;
+      lucide.createIcons();
+
+      try {
+        const descriptorArray = Array.from(tempScannedDescriptor);
 
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
@@ -784,19 +873,19 @@
         const result = await res.json();
         if (result.status === "success") {
           AudioEngine.success();
-          alert(`Pendaftaran Berjaya!\nNama: ${name}\nID: ${id}`);
+          alert(`Pendaftaran Berjaya Disimpan!\nNama: ${name}\nID: ${id}`);
           closeRegistrationMode();
-          await syncUsers(); // Muat semula senarai terkini
+          await syncUsers(); // Kemaskini pangkalan data
         } else {
           AudioEngine.alert();
           alert("Gagal: " + (result.message || "Ralat pendaftaran"));
         }
       } catch (err) {
         console.error(err);
-        alert("Ralat semasa mendaftar: " + err.message);
+        alert("Ralat sambungan: " + err.message);
       } finally {
-        captureFaceBtn.disabled = false;
-        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Imbas Wajah & Simpan ke Sheets</span>`;
+        saveRecordBtn.disabled = false;
+        saveRecordBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>2. Simpan Rekod ke Database</span>`;
         lucide.createIcons();
       }
     });
