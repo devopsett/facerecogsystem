@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VisionGuard AI | Portal Kehadiran</title>
+  <title>VisionGuard AI | Portal Kehadiran Pintar</title>
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Face API Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
 
   <style>
@@ -14,29 +17,30 @@
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #090d16;
+      background-color: #080c15;
       background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.14) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
     }
 
     .glass-card {
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .glass-card-subtle {
-      background: rgba(30, 41, 59, 0.45);
+      background: rgba(30, 41, 59, 0.48);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
+    /* Imbasan laser interaktif */
     @keyframes scanBeam {
-      0% { top: 0%; opacity: 0.8; }
-      50% { opacity: 0.3; }
-      100% { top: 100%; opacity: 0.8; }
+      0% { top: 0%; opacity: 0.9; }
+      50% { opacity: 0.25; }
+      100% { top: 100%; opacity: 0.9; }
     }
 
     .scanner-line {
@@ -44,68 +48,82 @@
       width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, transparent);
-      box-shadow: 0 0 15px #38bdf8;
+      box-shadow: 0 0 16px #38bdf8;
       animation: scanBeam 2.8s infinite ease-in-out;
+    }
+
+    /* Animasi Pop-in Modal */
+    @keyframes modalPop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .animate-modal-pop {
+      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
   </style>
 </head>
-<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8">
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8 select-none">
 
-  <!-- Header -->
+  <!-- Header Utama -->
   <header class="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 mb-6">
-    <div class="flex items-center gap-3">
-      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+    <div class="flex items-center gap-3.5">
+      <div class="h-11 w-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/30">
         <i data-lucide="scan-face" class="w-6 h-6 text-white"></i>
       </div>
       <div>
         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-          VisionGuard <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Enterprise</span>
+          VisionGuard <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 font-semibold">Enterprise</span>
         </h1>
-        <p class="text-xs text-slate-400">Sistem Pengecaman Wajah & Anti-Spoof Pintar</p>
+        <p class="text-xs text-slate-400">Sistem Biometrik Wajah & Verifikasi Anti-Pemalsuan</p>
       </div>
     </div>
 
+    <!-- Status & Butang Tindakan -->
     <div class="flex items-center gap-3">
-      <div id="statusBadge" class="flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+      <div id="statusBadge" class="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
         <span class="relative flex h-2 w-2">
           <span id="pingDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span id="mainDot" class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
         </span>
-        <span id="statusText">Memulakan Sistem...</span>
+        <span id="statusText">Menyediakan Sistem...</span>
       </div>
 
-      <button id="toggleRegisterModal" class="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95">
+      <button id="toggleRegisterModal" class="flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-100 border border-slate-700/80 transition active:scale-95 shadow-md">
         <i data-lucide="user-plus" class="w-4 h-4 text-indigo-400"></i>
-        <span>Daftar Wajah</span>
+        <span>Daftar Wajah Baharu</span>
       </button>
     </div>
   </header>
 
-  <!-- Main Workspace -->
+  <!-- Ruang Kerja Utama -->
   <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- LEFT: Camera Utama -->
+    <!-- BAHAGIAN KIRI: Imbasan Kamera Utama -->
     <div class="lg:col-span-7 flex flex-col gap-4">
-      <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
+      <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden border border-slate-800">
         
-        <div id="cameraViewportContainer" class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+        <div id="cameraViewportContainer" class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800/80">
           <video id="video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
           <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
-          <!-- Paused Overlay Semasa Daftar -->
-          <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center gap-2 hidden z-20">
-            <i data-lucide="pause-circle" class="w-10 h-10 text-indigo-400 animate-pulse"></i>
-            <span class="text-xs font-semibold text-slate-300">Kamera Utama Dijeda</span>
-            <span class="text-[11px] text-slate-500">Pendaftaran sedang berlangsung di tetingkap modal</span>
+          <!-- Status Bila Paused Semasa Register -->
+          <div id="pausedOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center gap-2.5 hidden z-20">
+            <div class="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+              <i data-lucide="pause" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+            <span class="text-xs font-semibold text-slate-200">Imbasan Utama Dijeda</span>
+            <span class="text-[11px] text-slate-400">Pendaftaran sedang diproses pada tetingkap modal</span>
           </div>
 
           <div id="scannerLine" class="scanner-line hidden pointer-events-none"></div>
 
-          <!-- Face Framing Reticle -->
+          <!-- Bingkai Sasaran Muka -->
           <div id="reticle" class="absolute inset-0 m-auto w-48 h-60 md:w-56 md:h-72 border-2 border-dashed border-slate-600/40 rounded-[2.5rem] pointer-events-none flex items-center justify-center transition-all duration-300">
             <div class="w-full h-full relative">
               <div class="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-xl"></div>
@@ -115,65 +133,67 @@
             </div>
           </div>
 
-          <!-- Floating Challenge Prompt -->
-          <div id="challengeBanner" class="absolute top-4 inset-x-6 mx-auto py-2.5 px-4 rounded-xl glass-card border border-indigo-500/40 text-center text-xs md:text-sm font-semibold tracking-wide text-indigo-200 shadow-2xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center justify-center gap-2.5">
+          <!-- Kad Arahan Liveness -->
+          <div id="challengeBanner" class="absolute top-4 inset-x-6 mx-auto py-2.5 px-4 rounded-2xl glass-card border border-indigo-500/40 text-center text-xs md:text-sm font-semibold tracking-wide text-indigo-200 shadow-2xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center justify-center gap-2.5">
             <i id="challengeIcon" data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
-            <span id="challengeText">Sila pandang tepat ke kamera</span>
+            <span id="challengeText">Sila pandang tepat ke arah kamera</span>
           </div>
 
-          <!-- Indicators -->
+          <!-- Bar Petunjuk Bawah -->
           <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-            <div id="livenessPill" class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
+            <div id="livenessPill" class="glass-card px-3.5 py-1.5 rounded-xl border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
               <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
               <span>Menunggu Wajah...</span>
             </div>
-            <div class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] text-slate-400 font-mono">
+            <div class="glass-card px-3 py-1.5 rounded-xl border border-slate-700/60 text-[11px] text-slate-400 font-mono">
               FPS: <span id="fpsCounter" class="text-indigo-400 font-semibold">0</span>
             </div>
           </div>
         </div>
 
-        <div class="w-full flex items-center justify-between mt-4 px-1">
-          <div class="flex items-center gap-2">
+        <!-- Footer Kad Kamera -->
+        <div class="w-full flex items-center justify-between mt-4 px-1.5">
+          <div class="flex items-center gap-2.5">
             <div id="statusDot" class="h-2 w-2 rounded-full bg-amber-500"></div>
-            <span id="systemNote" class="text-xs font-medium text-slate-300">Menyediakan modul kamera...</span>
+            <span id="systemNote" class="text-xs font-medium text-slate-300">Menyediakan pangkalan data...</span>
           </div>
-          <button id="resyncBtn" title="Sync database" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
+          <button id="resyncBtn" title="Segerak pangkalan data" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>Muat Semula Data</span>
+            <span>Segerak Data</span>
           </button>
         </div>
 
       </div>
     </div>
 
-    <!-- RIGHT: Live Attendance List & Metrics -->
+    <!-- BAHAGIAN KANAN: Statistik & Log Rekod -->
     <div class="lg:col-span-5 flex flex-col gap-4">
-      <div class="grid grid-cols-2 gap-3">
-        <div class="glass-card rounded-2xl p-4 flex flex-col">
+      <div class="grid grid-cols-2 gap-3.5">
+        <div class="glass-card rounded-2xl p-4 flex flex-col border border-slate-800">
           <span class="text-xs font-medium text-slate-400">Wajah Berdaftar</span>
           <span id="registeredCount" class="text-2xl font-bold text-white mt-1">0</span>
         </div>
-        <div class="glass-card rounded-2xl p-4 flex flex-col">
-          <span class="text-xs font-medium text-slate-400">Hadir Hari Ini</span>
+        <div class="glass-card rounded-2xl p-4 flex flex-col border border-slate-800">
+          <span class="text-xs font-medium text-slate-400">Kehadiran Hari Ini</span>
           <span id="verifiedCount" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
         </div>
       </div>
 
-      <div class="glass-card rounded-3xl p-5 flex flex-col h-[470px] shadow-2xl">
-        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+      <!-- Log Transaksi -->
+      <div class="glass-card rounded-3xl p-5 flex flex-col h-[470px] shadow-2xl border border-slate-800">
+        <div class="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-800">
           <div class="flex items-center gap-2">
-            <i data-lucide="history" class="w-4 h-4 text-indigo-400"></i>
+            <i data-lucide="activity" class="w-4 h-4 text-indigo-400"></i>
             <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Log Kehadiran Langsung</h2>
           </div>
-          <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Live Feed</span>
+          <span class="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Autosync</span>
         </div>
 
         <div id="attendanceContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs">
           <div id="emptyLog" class="h-full flex flex-col items-center justify-center text-slate-500 py-16 text-center">
-            <i data-lucide="user-check" class="w-8 h-8 stroke-1 mb-2 opacity-40"></i>
-            <p>Tiada kehadiran dicatat lagi.</p>
-            <p class="text-[11px] text-slate-600 mt-0.5">Pengesahan kehadiran akan keluar di sini secara langsung.</p>
+            <i data-lucide="user-check" class="w-8 h-8 stroke-1 mb-2 opacity-30"></i>
+            <p class="font-medium text-slate-400">Tiada rekod kehadiran dicatat lagi.</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Pengesahan kehadiran automatik akan disenaraikan di sini.</p>
           </div>
         </div>
       </div>
@@ -181,52 +201,53 @@
 
   </main>
 
-  <!-- MODAL: DAFTAR WAJAH BARU (ALIRAN 2-LANGKAH: SCAN DULU BARU SIMPAN) -->
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: PENDAFTARAN WAJAH (ALIRAN 2-LANGKAH)                             -->
+  <!-- ========================================================================= -->
   <div id="registerModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
-    <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col">
+    <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col animate-modal-pop">
       
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-        <div class="flex items-center gap-2.5">
-          <div class="h-8 w-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-800 mb-4">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
             <i data-lucide="user-plus" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white">Pendaftaran Wajah Baharu</h3>
-            <p class="text-[11px] text-slate-400">Langkah 1: Imbas Muka • Langkah 2: Simpan Rekod</p>
+            <h3 class="text-sm font-semibold text-white">Pendaftaran Profil Wajah</h3>
+            <p class="text-[11px] text-slate-400">Langkah 1: Imbas Biometrik • Langkah 2: Simpan Rekod</p>
           </div>
         </div>
-        <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+        <button id="closeModal" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- Kamera Preview Slot Dalam Modal -->
-      <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700 relative mb-3 flex items-center justify-center">
+      <!-- Kamera Viewport Modal -->
+      <div class="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-700/80 relative mb-4 flex items-center justify-center shadow-inner">
         <video id="regVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
-        
-        <!-- Snapshot Frame Semasa Berjaya Diimbas -->
         <canvas id="regSnapshot" class="absolute inset-0 w-full h-full object-cover scale-x-[-1] hidden z-10"></canvas>
 
-        <div id="regReticle" class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20">
-          <span id="regStatusBadge" class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30">
+        <div id="regReticle" class="absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20 transition-all">
+          <span id="regStatusBadge" class="text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30 shadow-md">
             Pusatkan Wajah Anda
           </span>
         </div>
       </div>
 
-      <!-- Butang Langkah 1: Imbas Muka Dulu -->
-      <div id="step1Container" class="mb-4">
-        <button id="scanFaceBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
+      <!-- Langkah 1: Imbas & Semak -->
+      <div id="step1Container" class="mb-2">
+        <button id="scanFaceBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 active:scale-[0.98]">
           <i data-lucide="scan" class="w-4 h-4"></i>
-          <span>1. Imbas Ciri Muka & Semak Duplikasi</span>
+          <span>1. Imbas Ciri Wajah & Sahkan</span>
         </button>
       </div>
 
-      <!-- Langkah 2: Borang & Butang Simpan (Hanya dipaparkan selepas scan lulus) -->
-      <div id="step2Container" class="space-y-3 hidden border-t border-slate-800/80 pt-3">
+      <!-- Langkah 2: Borang & Simpan (Buka selepas langkah 1 selesai) -->
+      <div id="step2Container" class="space-y-3.5 hidden border-t border-slate-800 pt-4">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Wajah Sah Dikesan! Sila isi maklumat:
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Ciri Wajah Sah! Lengkapkan maklumat:
           </span>
           <button id="rescanBtn" class="text-[11px] text-slate-400 hover:text-white underline">
             Imbas Semula
@@ -235,16 +256,16 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-[11px] font-medium text-slate-300 mb-1">Staff / Student ID</label>
-            <input type="text" id="regId" placeholder="cth: STF-101" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+            <label class="block text-[11px] font-medium text-slate-300 mb-1.5">No. ID Kakitangan / Pelajar</label>
+            <input type="text" id="regId" placeholder="Cth: STF-101" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
           </div>
           <div>
-            <label class="block text-[11px] font-medium text-slate-300 mb-1">Nama Penuh</label>
-            <input type="text" id="regName" placeholder="cth: Ahmad Albab" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
+            <label class="block text-[11px] font-medium text-slate-300 mb-1.5">Nama Penuh</label>
+            <input type="text" id="regName" placeholder="Cth: Ahmad Albab" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
           </div>
         </div>
 
-        <button id="saveRecordBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-[0.98]">
+        <button id="saveRecordBtn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 active:scale-[0.98]">
           <i data-lucide="save" class="w-4 h-4"></i>
           <span>2. Simpan Rekod ke Database</span>
         </button>
@@ -253,6 +274,30 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: CUSTOM MODERN NOTIFICATION DIALOG (PENGGANTI ALERT LALAI)        -->
+  <!-- ========================================================================= -->
+  <div id="noticeModal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
+    <div class="glass-card w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative flex flex-col items-center text-center animate-modal-pop">
+      
+      <div id="noticeIconContainer" class="h-12 w-12 rounded-2xl flex items-center justify-center mb-3.5 border">
+        <i id="noticeIcon" data-lucide="info" class="w-6 h-6"></i>
+      </div>
+
+      <h3 id="noticeTitle" class="text-sm font-bold text-white mb-1">Makluman</h3>
+      <p id="noticeDesc" class="text-xs text-slate-400 mb-5 leading-relaxed"></p>
+
+      <button id="noticeCloseBtn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition active:scale-95 border border-slate-700">
+        Faham & Teruskan
+      </button>
+    </div>
+  </div>
+
+  <footer class="w-full max-w-6xl text-center py-4 text-[11px] text-slate-500">
+    Enjin Pengecaman Vektor TensorFlow • Dioptimumkan Bersama Google Apps Script
+  </footer>
+
+  <!-- SCRIPT UTAMA -->
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
@@ -263,8 +308,6 @@
     let isProcessingTransaction = false;
     let isRegisteringMode = false;
     let verifiedSessionCount = 0;
-    
-    // Variabel simpan descriptor sementara selepas scan langkah 1
     let tempScannedDescriptor = null;
 
     let lastFrameTime = performance.now();
@@ -273,8 +316,6 @@
     const EAR_CLOSED_THRESHOLD = 0.23;
     const EAR_OPEN_THRESHOLD = 0.25;
     const YAW_TURN_THRESHOLD = 1.65;
-
-    // Ambang duplikasi ketat (Euclidean distance <= 0.55 bermakna orang yang sama)
     const DUPLICATE_FACE_THRESHOLD = 0.55; 
 
     const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
@@ -283,7 +324,7 @@
     let targetSubject = null;
     let challengeTimeoutTimer = null;
 
-    // DOM Elements Utama
+    // Elemen Antaramuka
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const pausedOverlay = document.getElementById("pausedOverlay");
@@ -305,7 +346,7 @@
     const emptyLog = document.getElementById("emptyLog");
     const fpsCounter = document.getElementById("fpsCounter");
 
-    // DOM Elements Modal
+    // Elemen Modal Pendaftaran
     const regVideo = document.getElementById("regVideo");
     const regSnapshot = document.getElementById("regSnapshot");
     const regReticle = document.getElementById("regReticle");
@@ -313,13 +354,21 @@
     const registerModal = document.getElementById("registerModal");
     const toggleRegisterModal = document.getElementById("toggleRegisterModal");
     const closeModal = document.getElementById("closeModal");
-    
     const step1Container = document.getElementById("step1Container");
     const scanFaceBtn = document.getElementById("scanFaceBtn");
     const step2Container = document.getElementById("step2Container");
     const saveRecordBtn = document.getElementById("saveRecordBtn");
     const rescanBtn = document.getElementById("rescanBtn");
 
+    // Elemen Modal Notifikasi Moden
+    const noticeModal = document.getElementById("noticeModal");
+    const noticeIconContainer = document.getElementById("noticeIconContainer");
+    const noticeIcon = document.getElementById("noticeIcon");
+    const noticeTitle = document.getElementById("noticeTitle");
+    const noticeDesc = document.getElementById("noticeDesc");
+    const noticeCloseBtn = document.getElementById("noticeCloseBtn");
+
+    // Audio Synthesizer
     const AudioEngine = {
       ctx: null,
       init() {
@@ -349,9 +398,35 @@
       }
     };
 
+    // FUNGSI NOTIFIKASI MODEN (GANTI POPUP ALERT KUNO)
+    function showNotice(title, message, type = "info") {
+      noticeTitle.innerText = title;
+      noticeDesc.innerText = message;
+
+      if (type === "error") {
+        AudioEngine.alert();
+        noticeIconContainer.className = "h-12 w-12 rounded-2xl flex items-center justify-center mb-3.5 bg-rose-500/15 border-rose-500/30 text-rose-400";
+        noticeIcon.setAttribute("data-lucide", "alert-triangle");
+      } else if (type === "success") {
+        AudioEngine.success();
+        noticeIconContainer.className = "h-12 w-12 rounded-2xl flex items-center justify-center mb-3.5 bg-emerald-500/15 border-emerald-500/30 text-emerald-400";
+        noticeIcon.setAttribute("data-lucide", "check-circle");
+      } else {
+        noticeIconContainer.className = "h-12 w-12 rounded-2xl flex items-center justify-center mb-3.5 bg-indigo-500/15 border-indigo-500/30 text-indigo-400";
+        noticeIcon.setAttribute("data-lucide", "info");
+      }
+
+      lucide.createIcons();
+      noticeModal.classList.remove("hidden");
+    }
+
+    noticeCloseBtn.addEventListener("click", () => {
+      noticeModal.classList.add("hidden");
+    });
+
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Sila gunakan HTTPS atau http://localhost.");
+        throw new Error("Sila gunakan sambungan HTTPS atau http://localhost.");
       }
 
       try {
@@ -376,29 +451,29 @@
       lucide.createIcons();
 
       try {
-        statusText.innerText = "Menyambung Kamera...";
+        statusText.innerText = "Menghubungkan Kamera...";
         await startCamera();
       } catch (camErr) {
-        failSystem("Kamera Gagal", "Sila benarkan akses kamera pelayar web anda.");
+        failSystem("Kamera Terputus", "Sila berikan kebenaran perkakasan webcam pada pelayar.");
         return;
       }
 
       try {
-        statusText.innerText = "Memuat AI Models...";
+        statusText.innerText = "Memuat Turun AI Models...";
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
       } catch (modelErr) {
-        failSystem("AI Model Gagal", "Gagal memuat fail neural network. Semak internet.");
+        failSystem("Model AI Terputus", "Gagal memuat fail neural network. Semak sambungan internet.");
         return;
       }
 
-      statusText.innerText = "Menyambung Database...";
+      statusText.innerText = "Menyambung Pangkalan Data...";
       await syncUsers();
 
-      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
       pingDot.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
       mainDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
       statusDot.className = "h-2 w-2 rounded-full bg-emerald-500";
@@ -409,7 +484,7 @@
     }
 
     function failSystem(title, reason) {
-      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20";
+      statusBadge.className = "flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20";
       pingDot.classList.add("hidden");
       mainDot.className = "relative inline-flex rounded-full h-2 w-2 bg-rose-500";
       statusDot.className = "h-2 w-2 rounded-full bg-rose-500";
@@ -433,18 +508,17 @@
               return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
             });
             faceMatcher = new faceapi.FaceMatcher(labeled, 0.55);
-            systemNote.innerText = `${registeredUsers.length} profil dimuatkan`;
+            systemNote.innerText = `${registeredUsers.length} profil aktif sedia diimbas`;
           } else {
             faceMatcher = null;
-            systemNote.innerText = "Pangkalan data kosong. Sila daftar pengguna baru.";
+            systemNote.innerText = "Tiada profil didaftarkan. Sila daftar kakitangan.";
           }
         }
       } catch (err) {
-        systemNote.innerText = "Mod luar talian.";
+        systemNote.innerText = "Beroperasi dalam mod luar talian.";
       }
     }
 
-    // Kira jarak Euclidean antara 2 vektor 128-float
     function computeVectorDistance(desc1, desc2) {
       let sum = 0;
       for (let i = 0; i < desc1.length; i++) {
@@ -542,7 +616,7 @@
 
         if (!isRecognized) {
           resetLiveness();
-          livenessPill.innerHTML = `<i data-lucide="shield-x" class="w-3.5 h-3.5 text-rose-400"></i><span>Wajah Tidak Dikenali</span>`;
+          livenessPill.innerHTML = `<i data-lucide="shield-x" class="w-3.5 h-3.5 text-rose-400"></i><span>Wajah Belum Berdaftar</span>`;
           lucide.createIcons();
           return;
         }
@@ -574,17 +648,17 @@
 
           if (currentChallenge === 'BLINK') {
             setPrompt(true, `Hai ${name}, sila KELIPKAN MATA anda`, "eye");
-            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Kelip Mata (EAR: ${ear.toFixed(2)})</span>`;
+            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Aksi: Kelip Mata</span>`;
           } else {
             setPrompt(true, `Hai ${name}, pusing muka ke KANAN sedikit`, "arrow-right");
-            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Pusing Kanan (Yaw: ${yaw.toFixed(2)})</span>`;
+            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Aksi: Pusing Kanan</span>`;
           }
           lucide.createIcons();
 
           challengeTimeoutTimer = setTimeout(() => {
             if (currentLivenessState !== LIVENESS.VERIFIED) {
               AudioEngine.alert();
-              setPrompt(true, "Pengesahan Gagal: Masa Tamat", "alert-circle", true);
+              setPrompt(true, "Verifikasi Gagal: Had Masa Tamat", "alert-circle", true);
               setTimeout(resetLiveness, 2000);
             }
           }, 6500);
@@ -592,14 +666,12 @@
 
         case LIVENESS.PROMPT:
           if (currentChallenge === 'BLINK') {
-            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Kelip Mata (EAR: ${ear.toFixed(2)})</span>`;
             if (ear < EAR_CLOSED_THRESHOLD || leftEar < EAR_CLOSED_THRESHOLD || rightEar < EAR_CLOSED_THRESHOLD) {
               currentLivenessState = LIVENESS.ACTION_DETECTED;
-              livenessPill.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Buka Mata Semula...</span>`;
+              livenessPill.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Sila Buka Mata Semula...</span>`;
               lucide.createIcons();
             }
           } else if (currentChallenge === 'TURN_RIGHT') {
-            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Pusing Kanan (Yaw: ${yaw.toFixed(2)})</span>`;
             if (yaw > YAW_TURN_THRESHOLD) {
               currentLivenessState = LIVENESS.ACTION_DETECTED;
             }
@@ -624,7 +696,7 @@
       AudioEngine.success();
       reticle.className = reticle.className.replace("border-slate-600/40", "border-emerald-500/80");
       setPrompt(true, `Disahkan: ${name}! Merekod...`, "check-circle2");
-      livenessPill.innerHTML = `<i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Wajah Tulen</span>`;
+      livenessPill.innerHTML = `<i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Individu Tulen</span>`;
       lucide.createIcons();
 
       try {
@@ -635,22 +707,21 @@
             action: "recordAttendance",
             id: id,
             name: name,
-            type: "Check-In"
+            type: "Hadir (Check-In)"
           })
         });
         const result = await res.json();
 
         if (result.status === "success") {
-          appendLog(name, id, "Check-In", new Date().toLocaleTimeString());
+          appendLog(name, id, "Hadir", new Date().toLocaleTimeString());
           verifiedSessionCount++;
           verifiedCountEl.innerText = verifiedSessionCount;
-          setPrompt(true, `Berjaya! Kehadiran Direkod`, "check-check");
+          setPrompt(true, `Kehadiran Berjaya Direkodkan`, "check-check");
         } else if (result.status === "skipped") {
-          setPrompt(true, `Kehadiran Telah Dicatat Tadi`, "clock", true);
+          setPrompt(true, `Kehadiran Anda Telah Direkodkan Sebelum Ini`, "clock", true);
         }
       } catch (err) {
-        console.error(err);
-        setPrompt(true, "Ralat Sambungan Cloud", "cloud-off", true);
+        setPrompt(true, "Ralat Menghubungi Cloud", "cloud-off", true);
       } finally {
         setTimeout(() => {
           resetLiveness();
@@ -663,18 +734,20 @@
       if (emptyLog) emptyLog.remove();
 
       const item = document.createElement("div");
-      item.className = "glass-card-subtle p-3 rounded-2xl flex items-center justify-between border border-slate-800 transition-all hover:border-slate-700";
+      item.className = "glass-card-subtle p-3.5 rounded-2xl flex items-center justify-between border border-slate-800/90 transition-all hover:border-slate-700";
       item.innerHTML = `
         <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+          <div class="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 flex items-center justify-center font-bold text-xs">
             ${name.charAt(0)}
           </div>
           <div>
-            <div class="font-medium text-slate-100 flex items-center gap-2">
+            <div class="font-semibold text-slate-100 flex items-center gap-2">
               <span>${name}</span>
-              <span class="text-[10px] text-indigo-400 font-mono">${id}</span>
+              <span class="text-[10px] text-indigo-400 font-mono px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">${id}</span>
             </div>
-            <div class="text-[10px] text-emerald-400 font-medium">${type}</div>
+            <div class="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> ${type}
+            </div>
           </div>
         </div>
         <span class="text-[11px] font-mono text-slate-400">${time}</span>
@@ -682,7 +755,6 @@
       attendanceContainer.prepend(item);
     }
 
-    // Buka Modal Pendaftaran
     async function openRegistrationMode() {
       isRegisteringMode = true;
       resetLiveness();
@@ -702,12 +774,11 @@
         try {
           await regVideo.play();
         } catch (e) {
-          console.warn("Reg video play warning:", e);
+          console.warn("Reg video auto-play warning:", e);
         }
       }
     }
 
-    // Reset keadaan modal ke Langkah 1
     function resetRegistrationState() {
       tempScannedDescriptor = null;
       step1Container.classList.remove("hidden");
@@ -716,7 +787,7 @@
       regVideo.classList.remove("hidden");
       
       regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-dashed border-indigo-400/70 rounded-3xl pointer-events-none flex items-center justify-center z-20";
-      regStatusBadge.className = "text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-2.5 py-1 rounded-full border border-indigo-500/30";
+      regStatusBadge.className = "text-[10px] text-indigo-300 font-medium bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30";
       regStatusBadge.innerText = "Pusatkan Wajah Anda";
 
       document.getElementById("regId").value = "";
@@ -745,16 +816,17 @@
       resyncBtn.classList.add("animate-spin");
       await syncUsers();
       resyncBtn.classList.remove("animate-spin");
+      showNotice("Penyelarasan Selesai", "Pangkalan data profil kakitangan telah berjaya dikemas kini.", "success");
     });
 
     rescanBtn.addEventListener("click", resetRegistrationState);
 
     // =========================================================================
-    // LANGKAH 1: IMBAS CIRI MUKA DULU & SEMAK DUPLIKASI
+    // LANGKAH 1: IMBAS CIRI WAJAH & SEMAK DUPLIKASI
     // =========================================================================
     scanFaceBtn.addEventListener("click", async () => {
       scanFaceBtn.disabled = true;
-      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Menganalisis & Menyemak Wajah...</span>`;
+      scanFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Menganalisis Biometrik...</span>`;
       lucide.createIcons();
 
       try {
@@ -763,14 +835,13 @@
           .withFaceDescriptor();
 
         if (!detection) {
-          AudioEngine.alert();
-          alert("Wajah tidak dikesan dengan jelas!\nSila pastikan muka anda berada tepat di dalam kotak panduan.");
+          showNotice("Wajah Tidak Dikesan", "Sila pastikan wajah anda berada tepat di tengah kotak kamera dengan pencahayaan yang mencukupi.", "error");
           return;
         }
 
         const scannedDescriptor = detection.descriptor;
 
-        // SEMAK DUPLIKASI: Bandingkan dengan semua pengguna sedia ada
+        // Semakan Duplikasi Biometrik
         let matchedUser = null;
         let lowestDist = 999.0;
 
@@ -778,9 +849,7 @@
           const userDescriptor = new Float32Array(user.descriptor);
           const dist = computeVectorDistance(scannedDescriptor, userDescriptor);
 
-          if (dist < lowestDist) {
-            lowestDist = dist;
-          }
+          if (dist < lowestDist) lowestDist = dist;
 
           if (dist <= DUPLICATE_FACE_THRESHOLD) {
             matchedUser = { ...user, distance: dist };
@@ -788,14 +857,17 @@
           }
         }
 
-        // JIKA MUKA SUDAH WUJUD, SEKAT SERTA-MERTA
+        // Sekat jika wajah sudah didaftarkan
         if (matchedUser) {
-          AudioEngine.alert();
-          alert(`SEKATAN WAJAH SUDAH WUJUD!\n\nMuka anda telah pun didaftarkan sebelum ini:\nNama: ${matchedUser.name}\nID: ${matchedUser.id}\n(Jarak Ketepatan: ${matchedUser.distance.toFixed(3)})\n\nPendaftaran dibatalkan.`);
+          showNotice(
+            "Wajah Sudah Berdaftar", 
+            `Ciri biometrik wajah ini telah didaftarkan sebelum ini atas nama ${matchedUser.name} (ID: ${matchedUser.id}). Pendaftaran berulang kali adalah tidak dibenarkan.`, 
+            "error"
+          );
           return;
         }
 
-        // JIKA MUKA BARU & BELUM WUJUD: Ambil snapshot visual muka
+        // Jika sah, kunci snapshot muka
         tempScannedDescriptor = scannedDescriptor;
 
         regSnapshot.width = regVideo.videoWidth || 640;
@@ -803,57 +875,54 @@
         const snapCtx = regSnapshot.getContext("2d");
         snapCtx.drawImage(regVideo, 0, 0, regSnapshot.width, regSnapshot.height);
 
-        // Bekukan paparan kamera dengan snapshot
         regSnapshot.classList.remove("hidden");
         regReticle.className = "absolute inset-0 m-auto w-40 h-52 border-2 border-emerald-500 rounded-3xl pointer-events-none flex items-center justify-center z-20";
-        regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-2.5 py-1 rounded-full border border-emerald-500/40";
-        regStatusBadge.innerText = "✓ Wajah Berjaya Diimbas";
+        regStatusBadge.className = "text-[10px] text-emerald-300 font-medium bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40";
+        regStatusBadge.innerText = "✓ Wajah Sah Dikesan";
 
         AudioEngine.success();
 
-        // Sembunyikan langkah 1, buka langkah 2
+        // Beralih ke Langkah 2
         step1Container.classList.add("hidden");
         step2Container.classList.remove("hidden");
         lucide.createIcons();
 
       } catch (err) {
-        console.error(err);
-        alert("Ralat semasa mengimbas muka: " + err.message);
+        showNotice("Ralat Imbasan", "Sistem gagal mengekstrak ciri biometrik: " + err.message, "error");
       } finally {
         scanFaceBtn.disabled = false;
-        scanFaceBtn.innerHTML = `<i data-lucide="scan" class="w-4 h-4"></i><span>1. Imbas Ciri Muka & Semak Duplikasi</span>`;
+        scanFaceBtn.innerHTML = `<i data-lucide="scan" class="w-4 h-4"></i><span>1. Imbas Ciri Wajah & Sahkan</span>`;
         lucide.createIcons();
       }
     });
 
     // =========================================================================
-    // LANGKAH 2: SIMPAN REKOD KE GOOGLE SHEETS
+    // LANGKAH 2: SIMPAN REKOD KE PANGKALAN DATA
     // =========================================================================
     saveRecordBtn.addEventListener("click", async () => {
       const id = document.getElementById("regId").value.trim();
       const name = document.getElementById("regName").value.trim();
 
       if (!id || !name) {
-        alert("Sila isi No. ID dan Nama Penuh terlebih dahulu.");
+        showNotice("Maklumat Tidak Lengkap", "Sila masukkan kedua-dua No. ID dan Nama Penuh sebelum menyimpan rekod.", "error");
         return;
       }
 
       if (!tempScannedDescriptor) {
-        alert("Sila imbas muka anda terlebih dahulu di Langkah 1!");
+        showNotice("Imbasan Diperlukan", "Sila imbas ciri wajah anda di Langkah 1 terlebih dahulu.", "error");
         resetRegistrationState();
         return;
       }
 
-      // Semak ID duplikat
+      // Semak No. ID duplikat
       const idExists = registeredUsers.find(u => u.id.toLowerCase() === id.toLowerCase());
       if (idExists) {
-        AudioEngine.alert();
-        alert(`SEKATAN ID: ID '${id}' sudah wujud didaftarkan kepada ${idExists.name}! Sila gunakan ID lain.`);
+        showNotice("No. ID Telah Wujud", `No. ID '${id}' telah pun digunakan oleh ${idExists.name}. Sila gunakan ID lain.`, "error");
         return;
       }
 
       saveRecordBtn.disabled = true;
-      saveRecordBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Google Sheet...</span>`;
+      saveRecordBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4 animate-bounce"></i><span>Menyimpan ke Cloud...</span>`;
       lucide.createIcons();
 
       try {
@@ -872,17 +941,14 @@
 
         const result = await res.json();
         if (result.status === "success") {
-          AudioEngine.success();
-          alert(`Pendaftaran Berjaya Disimpan!\nNama: ${name}\nID: ${id}`);
           closeRegistrationMode();
-          await syncUsers(); // Kemaskini pangkalan data
+          await syncUsers();
+          showNotice("Pendaftaran Berjaya", `Profil kakitangan ${name} (${id}) telah berjaya disimpan ke dalam sistem.`, "success");
         } else {
-          AudioEngine.alert();
-          alert("Gagal: " + (result.message || "Ralat pendaftaran"));
+          showNotice("Gagal Menyimpan", result.message || "Ralat pendaftaran berlaku dari pelayan.", "error");
         }
       } catch (err) {
-        console.error(err);
-        alert("Ralat sambungan: " + err.message);
+        showNotice("Ralat Sambungan", "Tidak dapat menghubungi pelayan Google Apps Script: " + err.message, "error");
       } finally {
         saveRecordBtn.disabled = false;
         saveRecordBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>2. Simpan Rekod ke Database</span>`;
