@@ -3,90 +3,333 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Face Recognition Attendance</title>
-  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+  <title>VisionGuard AI | Attendance Portal</title>
+  
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Face API -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+
   <style>
-    .glassmorphism {
-      background: rgba(17, 24, 39, 0.75);
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #090d16;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .glass-card-subtle {
+      background: rgba(30, 41, 59, 0.45);
       backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    /* Scanning beam animation */
+    @keyframes scanBeam {
+      0% { top: 0%; opacity: 0.8; }
+      50% { opacity: 0.3; }
+      100% { top: 100%; opacity: 0.8; }
+    }
+
+    .scanner-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, transparent);
+      box-shadow: 0 0 15px #38bdf8;
+      animation: scanBeam 2.8s infinite ease-in-out;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4">
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8">
 
-  <!-- Header -->
-  <header class="w-full max-w-4xl py-4 flex justify-between items-center border-b border-slate-800 mb-6">
-    <h1 class="text-xl font-semibold tracking-tight text-indigo-400">ScanFace Attendance</h1>
-    <div id="connectionStatus" class="text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-      Loading Models...
+  <!-- Top Navigation / Brand -->
+  <header class="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i data-lucide="scan-face" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          VisionGuard <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Enterprise</span>
+        </h1>
+        <p class="text-xs text-slate-400">Autonomous Biometric & Anti-Spoof Verification</p>
+      </div>
+    </div>
+
+    <!-- Right Stat Badges -->
+    <div class="flex items-center gap-3">
+      <div id="statusBadge" class="flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+        </span>
+        <span id="statusText">Initializing Engine...</span>
+      </div>
+
+      <button id="toggleRegisterModal" class="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95">
+        <i data-lucide="user-plus" class="w-4 h-4 text-indigo-400"></i>
+        <span>Enroll Personnel</span>
+      </button>
     </div>
   </header>
 
-  <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- Main Grid Workspace -->
+  <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
     
-    <!-- Camera Viewport (Left/Center) -->
-    <section class="md:col-span-2 glassmorphism rounded-2xl p-4 flex flex-col items-center relative overflow-hidden shadow-2xl">
-      <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-black flex items-center justify-center">
-        <video id="video" autoplay muted playsinline class="w-full h-full object-cover"></video>
-        <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
-      </div>
+    <!-- LEFT: Camera & Verification Core (7 Columns) -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      <div class="glass-card rounded-3xl p-4 md:p-5 relative shadow-2xl flex flex-col items-center overflow-hidden">
+        
+        <!-- Camera Viewport Box -->
+        <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+          <video id="video" autoplay muted playsinline class="w-full h-full object-cover scale-x-[-1]"></video>
+          <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
 
-      <div class="w-full flex items-center justify-between mt-4 px-2">
-        <span id="scanLog" class="text-sm font-medium text-slate-300">Ready to recognize</span>
-        <button id="toggleModeBtn" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition">
-          Switch to Register Mode
-        </button>
-      </div>
-    </section>
+          <!-- Scanning Light Overlay -->
+          <div id="scannerLine" class="scanner-line hidden pointer-events-none"></div>
 
-    <!-- Controls & Logs (Right) -->
-    <section class="flex flex-col gap-6">
-      <!-- Registration Card -->
-      <div id="registerPanel" class="hidden glassmorphism rounded-2xl p-5 border border-indigo-500/30">
-        <h3 class="text-sm font-semibold text-indigo-300 mb-3 uppercase tracking-wider">Register Person</h3>
-        <div class="space-y-3">
-          <input type="text" id="regId" placeholder="Staff/Student ID" class="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
-          <input type="text" id="regName" placeholder="Full Name" class="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white">
-          <button id="captureRegisterBtn" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-medium rounded-lg transition">
-            Capture & Save Face
+          <!-- Centered Face Guide Reticle -->
+          <div id="reticle" class="absolute inset-0 m-auto w-48 h-60 md:w-56 md:h-72 border-2 border-dashed border-slate-600/40 rounded-[2.5rem] pointer-events-none flex items-center justify-center transition-all duration-300">
+            <div class="w-full h-full relative">
+              <div class="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-xl"></div>
+              <div class="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-indigo-400 rounded-tr-xl"></div>
+              <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-indigo-400 rounded-bl-xl"></div>
+              <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-indigo-400 rounded-br-xl"></div>
+            </div>
+          </div>
+
+          <!-- Challenge Prompt Floating Banner -->
+          <div id="challengeBanner" class="absolute top-4 inset-x-6 mx-auto py-2.5 px-4 rounded-xl glass-card border border-indigo-500/40 text-center text-xs md:text-sm font-semibold tracking-wide text-indigo-200 shadow-2xl transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-none flex items-center justify-center gap-2.5">
+            <i id="challengeIcon" data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
+            <span id="challengeText">Center your face inside the box</span>
+          </div>
+
+          <!-- Bottom Detection State Indicator -->
+          <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+            <div id="livenessPill" class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-lg">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Awaiting Face...</span>
+            </div>
+            <div class="glass-card px-3 py-1.5 rounded-lg border border-slate-700/60 text-[11px] text-slate-400 font-mono">
+              FPS: <span id="fpsCounter" class="text-indigo-400 font-semibold">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Status Bar -->
+        <div class="w-full flex items-center justify-between mt-4 px-1">
+          <div class="flex items-center gap-2">
+            <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+            <span id="systemNote" class="text-xs font-medium text-slate-300">Live matching enabled</span>
+          </div>
+          <button id="resyncBtn" title="Sync registered user data" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh Users</span>
           </button>
         </div>
-      </div>
 
-      <!-- Live Attendance Feed -->
-      <div class="glassmorphism rounded-2xl p-5 flex-1 flex flex-col">
-        <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">Live Log</h3>
-        <div id="attendanceList" class="flex-1 overflow-y-auto space-y-2 text-xs max-h-72 pr-1">
-          <p class="text-slate-500 italic">No attendance marked yet.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Live Verification Feed & Personnel Stats (5 Columns) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Quick Counter Metrics -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-card rounded-2xl p-4 flex flex-col">
+          <span class="text-xs font-medium text-slate-400">Registered Pool</span>
+          <span id="registeredCount" class="text-2xl font-bold text-white mt-1">0</span>
+        </div>
+        <div class="glass-card rounded-2xl p-4 flex flex-col">
+          <span class="text-xs font-medium text-slate-400">Verified Today</span>
+          <span id="verifiedCount" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
         </div>
       </div>
-    </section>
+
+      <!-- Real-Time Activity Log Card -->
+      <div class="glass-card rounded-3xl p-5 flex flex-col h-[470px] shadow-2xl">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-indigo-400"></i>
+            <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Verification Stream</h2>
+          </div>
+          <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Live Sync</span>
+        </div>
+
+        <div id="attendanceContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs">
+          <!-- Empty State -->
+          <div id="emptyLog" class="h-full flex flex-col items-center justify-center text-slate-500 py-16 text-center">
+            <i data-lucide="user-check" class="w-8 h-8 stroke-1 mb-2 opacity-40"></i>
+            <p>No transactions recorded yet.</p>
+            <p class="text-[11px] text-slate-600 mt-0.5">Scanned individuals will appear here.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
 
   </main>
 
+  <!-- MODAL: Enroll Personnel Dialog -->
+  <div id="registerModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 hidden">
+    <div class="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-700/60 relative">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Enroll New Personnel</h3>
+            <p class="text-[11px] text-slate-400">Map facial embedding into database</p>
+          </div>
+        </div>
+        <button id="closeModal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Identification Code / Staff ID</label>
+          <input type="text" id="regId" placeholder="e.g. EMP-9021" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+          <input type="text" id="regName" placeholder="e.g. Alexander Wright" class="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500">
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex gap-3 items-start">
+          <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Position the personnel's face in the camera view before pressing capture. Ensure ambient lighting is even.
+          </p>
+        </div>
+
+        <button id="captureFaceBtn" class="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 active:scale-[0.98]">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>Capture Descriptor & Save</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="w-full max-w-6xl text-center py-4 text-[11px] text-slate-600">
+    Encrypted Facial Descriptor Pipeline • Powered by WebAssembly & Google Apps Script
+  </footer>
+
+  <!-- App Core Script -->
   <script>
-    // Replace with your Google Apps Script Web App URL
-    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+    // ----------------- CONFIGURATION -----------------
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk_3jGE9LtCf6SwTJTIW0f4tk-1ZQ3G2CYQuU8bF5IfOX2O6V7Ch6fix1TXHXrgthw/exec";
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/cadenmarchese/face-api-models@master";
 
+    // ----------------- STATE MANAGERS ----------------
     let faceMatcher = null;
     let registeredUsers = [];
-    let isRegistering = false;
-    let recognitionInterval = null;
+    let isProcessingTransaction = false;
+    let verifiedSessionCount = 0;
+    
+    // FPS Measurement
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
 
+    // Liveness Challenge Machine
+    const LIVENESS = { IDLE: 0, PROMPT: 1, ACTION_DETECTED: 2, VERIFIED: 3 };
+    let currentLivenessState = LIVENESS.IDLE;
+    let currentChallenge = null; // 'BLINK' | 'TURN_RIGHT' | 'TURN_LEFT'
+    let targetSubject = null;
+    let challengeTimeoutTimer = null;
+
+    // ----------------- DOM ELEMENTS ------------------
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
-    const connectionStatus = document.getElementById("connectionStatus");
-    const scanLog = document.getElementById("scanLog");
-    const toggleModeBtn = document.getElementById("toggleModeBtn");
-    const registerPanel = document.getElementById("registerPanel");
-    const attendanceList = document.getElementById("attendanceList");
+    const statusBadge = document.getElementById("statusBadge");
+    const statusText = document.getElementById("statusText");
+    const scannerLine = document.getElementById("scannerLine");
+    const reticle = document.getElementById("reticle");
+    const challengeBanner = document.getElementById("challengeBanner");
+    const challengeText = document.getElementById("challengeText");
+    const challengeIcon = document.getElementById("challengeIcon");
+    const livenessPill = document.getElementById("livenessPill");
+    const systemNote = document.getElementById("systemNote");
+    const registeredCountEl = document.getElementById("registeredCount");
+    const verifiedCountEl = document.getElementById("verifiedCount");
+    const attendanceContainer = document.getElementById("attendanceContainer");
+    const emptyLog = document.getElementById("emptyLog");
+    const fpsCounter = document.getElementById("fpsCounter");
 
-    // Initialize Camera and AI Models
+    // Modal elements
+    const registerModal = document.getElementById("registerModal");
+    const toggleRegisterModal = document.getElementById("toggleRegisterModal");
+    const closeModal = document.getElementById("closeModal");
+    const captureFaceBtn = document.getElementById("captureFaceBtn");
+
+    // ----------------- AUDIO FEEDBACK (Synthesizer) --
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      },
+      playBeep(freq = 600, type = "sine", duration = 0.15) {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) { /* Audio Context muted */ }
+      },
+      success() {
+        this.playBeep(587.33, "triangle", 0.1);
+        setTimeout(() => this.playBeep(880.00, "triangle", 0.2), 100);
+      },
+      alert() {
+        this.playBeep(260, "sawtooth", 0.25);
+      }
+    };
+
+    // ----------------- INITIALIZATION ----------------
     async function init() {
+      lucide.createIcons();
+
       try {
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
@@ -94,86 +337,227 @@
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
 
-        connectionStatus.innerText = "Connecting to DB...";
+        statusText.innerText = "Connecting Google Sheet...";
         await syncUsers();
 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+        });
         video.srcObject = stream;
 
-        connectionStatus.className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
-        connectionStatus.innerText = "System Active";
+        // Ready
+        statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+        statusText.innerText = "System Active";
+        scannerLine.classList.remove("hidden");
 
-        startRecognition();
+        runDetectionPipeline();
       } catch (err) {
         console.error(err);
-        connectionStatus.className = "text-xs px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30";
-        connectionStatus.innerText = "Init Failed";
+        statusBadge.className = "flex items-center gap-2 text-xs font-medium px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20";
+        statusText.innerText = "Hardware / Init Failed";
+        systemNote.innerText = "Camera or model loading failed.";
       }
     }
 
-    // Fetch registered descriptors from Google Apps Script
+    // ----------------- DESCRIPTOR SYNC ---------------
     async function syncUsers() {
       try {
         const res = await fetch(`${SCRIPT_URL}?action=getUsers`);
-        const result = await res.json();
-        if (result.status === "success" && result.users.length > 0) {
-          registeredUsers = result.users;
-          const labeledDescriptors = registeredUsers.map(u => {
-            const descArray = new Float32Array(u.descriptor);
-            return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descArray]);
-          });
-          faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // 0.55 Euclidean distance threshold
+        const data = await res.json();
+        
+        if (data.status === "success" && data.users) {
+          registeredUsers = data.users;
+          registeredCountEl.innerText = registeredUsers.length;
+
+          if (registeredUsers.length > 0) {
+            const labeled = registeredUsers.map(u => {
+              const descriptorArray = new Float32Array(u.descriptor);
+              return new faceapi.LabeledFaceDescriptors(`${u.name} (${u.id})`, [descriptorArray]);
+            });
+            faceMatcher = new faceapi.FaceMatcher(labeled, 0.52);
+            systemNote.innerText = `${registeredUsers.length} personnel profiles loaded`;
+          } else {
+            systemNote.innerText = "Database empty. Register a user.";
+          }
         }
       } catch (err) {
-        console.error("Failed to load user descriptors:", err);
+        console.error("Failed to fetch users:", err);
+        systemNote.innerText = "Database sync error.";
       }
     }
 
-    // Continuous Real-Time Detection Loop
-    function startRecognition() {
+    // ----------------- GEOMETRY ALGORITHMS -----------
+    function distance(p1, p2) {
+      return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    function calculateEAR(eye) {
+      const v1 = distance(eye[1], eye[5]);
+      const v2 = distance(eye[2], eye[4]);
+      const h = distance(eye[0], eye[3]);
+      return (v1 + v2) / (2.0 * h);
+    }
+
+    function calculateYawRatio(landmarks) {
+      const jawLeft = landmarks[0];
+      const jawRight = landmarks[16];
+      const nose = landmarks[30];
+
+      const leftDist = Math.abs(nose.x - jawLeft.x);
+      const rightDist = Math.abs(jawRight.x - nose.x);
+      return rightDist === 0 ? 1.0 : leftDist / rightDist;
+    }
+
+    // ----------------- UI NOTIFICATIONS --------------
+    function setPrompt(show, text = "", icon = "eye", isWarn = false) {
+      if (!show) {
+        challengeBanner.classList.add("-translate-y-4", "opacity-0");
+        challengeBanner.classList.remove("translate-y-0", "opacity-100");
+        return;
+      }
+      challengeText.innerText = text;
+      challengeIcon.setAttribute("data-lucide", icon);
+      lucide.createIcons();
+
+      if (isWarn) {
+        challengeBanner.className = challengeBanner.className.replace("border-indigo-500/40 text-indigo-200", "border-rose-500/50 text-rose-300");
+      } else {
+        challengeBanner.className = challengeBanner.className.replace("border-rose-500/50 text-rose-300", "border-indigo-500/40 text-indigo-200");
+      }
+      challengeBanner.classList.remove("-translate-y-4", "opacity-0");
+      challengeBanner.classList.add("translate-y-0", "opacity-100");
+    }
+
+    function resetLiveness() {
+      currentLivenessState = LIVENESS.IDLE;
+      currentChallenge = null;
+      targetSubject = null;
+      clearTimeout(challengeTimeoutTimer);
+      setPrompt(false);
+      livenessPill.innerHTML = `<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i><span>Awaiting Face...</span>`;
+      reticle.className = reticle.className.replace("border-emerald-500/80", "border-slate-600/40");
+      lucide.createIcons();
+    }
+
+    // ----------------- DETECTION & VERIFICATION LOOP -
+    function runDetectionPipeline() {
       const displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
       faceapi.matchDimensions(overlay, displaySize);
 
-      recognitionInterval = setInterval(async () => {
-        if (isRegistering || !faceMatcher) return;
+      setInterval(async () => {
+        // Calculate FPS
+        const now = performance.now();
+        frameCount++;
+        if (now - lastFrameTime >= 1000) {
+          fpsCounter.innerText = frameCount;
+          frameCount = 0;
+          lastFrameTime = now;
+        }
 
-        const detections = await faceapi.detectAllFaces(video)
+        if (isProcessingTransaction || !faceMatcher) return;
+
+        const detection = await faceapi.detectSingleFace(video)
           .withFaceLandmarks()
-          .withFaceDescriptors();
+          .withFaceDescriptor();
 
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
         const ctx = overlay.getContext("2d");
         ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-        resizedDetections.forEach(detection => {
-          const match = faceMatcher.findBestMatch(detection.descriptor);
-          const box = detection.detection.box;
-          
-          // Draw bounding box
-          new faceapi.draw.DrawBox(box, { 
-            label: match.toString(), 
-            boxColor: match.label.includes("unknown") ? "#ef4444" : "#10b981" 
-          }).draw(overlay);
+        if (!detection) {
+          if (currentLivenessState !== LIVENESS.IDLE) resetLiveness();
+          return;
+        }
 
-          if (!match.label.includes("unknown")) {
-            const matchParts = match.label.match(/(.*) \((.*)\)/);
-            if (matchParts) {
-              const name = matchParts[1];
-              const id = matchParts[2];
-              markAttendance(id, name);
-            }
-          }
-        });
-      }, 700);
+        const resized = faceapi.resizeResults(detection, displaySize);
+        const match = faceMatcher.findBestMatch(resized.descriptor);
+        const isRecognized = !match.label.includes("unknown");
+
+        if (!isRecognized) {
+          resetLiveness();
+          livenessPill.innerHTML = `<i data-lucide="shield-x" class="w-3.5 h-3.5 text-rose-400"></i><span>Unrecognized Person</span>`;
+          lucide.createIcons();
+          return;
+        }
+
+        const matchParts = match.label.match(/(.*) \((.*)\)/);
+        const pName = matchParts[1];
+        const pId = matchParts[2];
+
+        // Process Facial Landmarks for Spoof Protection
+        const landmarks = resized.landmarks.positions;
+        const leftEye = landmarks.slice(36, 42);
+        const rightEye = landmarks.slice(42, 48);
+        const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
+        const yaw = calculateYawRatio(landmarks);
+
+        handleLivenessChallenge(pId, pName, avgEAR, yaw);
+
+      }, 140);
     }
 
-    // Record attendance to Google Apps Script
-    async function markAttendance(id, name) {
-      scanLog.innerText = `Recognized: ${name}. Sending...`;
+    // ----------------- CHALLENGE ENGINE --------------
+    function handleLivenessChallenge(id, name, ear, yaw) {
+      switch (currentLivenessState) {
+        case LIVENESS.IDLE:
+          targetSubject = { id, name };
+          // Randomize challenge to defeat pre-recorded clips
+          const challenges = ['BLINK', 'TURN_RIGHT'];
+          currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+          currentLivenessState = LIVENESS.PROMPT;
+
+          if (currentChallenge === 'BLINK') {
+            setPrompt(true, `Hi ${name}, please BLINK both eyes`, "eye");
+            livenessPill.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i><span>Action: Blink</span>`;
+          } else {
+            setPrompt(true, `Hi ${name}, turn head SLIGHTLY to right`, "arrow-right");
+            livenessPill.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5 text-indigo-400"></i><span>Action: Turn Right</span>`;
+          }
+          lucide.createIcons();
+
+          // 6-second expiration timer
+          challengeTimeoutTimer = setTimeout(() => {
+            if (currentLivenessState !== LIVENESS.VERIFIED) {
+              AudioEngine.alert();
+              setPrompt(true, "Liveness Check Failed (Timeout)", "alert-circle", true);
+              setTimeout(resetLiveness, 2000);
+            }
+          }, 6000);
+          break;
+
+        case LIVENESS.PROMPT:
+          if (currentChallenge === 'BLINK' && ear < 0.19) {
+            currentLivenessState = LIVENESS.ACTION_DETECTED;
+          } else if (currentChallenge === 'TURN_RIGHT' && yaw > 1.9) {
+            currentLivenessState = LIVENESS.ACTION_DETECTED;
+          }
+          break;
+
+        case LIVENESS.ACTION_DETECTED:
+          // For blink: confirm eye opened back up
+          if (currentChallenge === 'BLINK' && ear > 0.25) {
+            verifyAndDispatch(id, name);
+          } else if (currentChallenge === 'TURN_RIGHT') {
+            verifyAndDispatch(id, name);
+          }
+          break;
+      }
+    }
+
+    async function verifyAndDispatch(id, name) {
+      clearTimeout(challengeTimeoutTimer);
+      currentLivenessState = LIVENESS.VERIFIED;
+      isProcessingTransaction = true;
+
+      AudioEngine.success();
+      reticle.className = reticle.className.replace("border-slate-600/40", "border-emerald-500/80");
+      setPrompt(true, `Verified: ${name}! Recording...`, "check-circle2");
+      livenessPill.innerHTML = `<i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Authenticated</span>`;
+      lucide.createIcons();
+
       try {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, // Avoid CORS preflight on Apps Script
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: "recordAttendance",
             id: id,
@@ -182,63 +566,92 @@
           })
         });
         const result = await res.json();
-        
+
         if (result.status === "success") {
-          addAttendanceLog(name, "Check-In", new Date().toLocaleTimeString());
-          scanLog.innerText = `Success: ${name} recorded!`;
+          appendLog(name, id, "Check-In", new Date().toLocaleTimeString());
+          verifiedSessionCount++;
+          verifiedCountEl.innerText = verifiedSessionCount;
+          setPrompt(true, `Success! Attendance Recorded`, "check-check");
         } else if (result.status === "skipped") {
-          scanLog.innerText = `Cooldown: ${name} already marked.`;
+          setPrompt(true, `Cooldown: Already Checked In`, "clock", true);
         }
       } catch (err) {
-        console.error("Attendance submission error:", err);
+        console.error(err);
+        setPrompt(true, "Cloud Sync Error", "cloud-off", true);
+      } finally {
+        setTimeout(() => {
+          resetLiveness();
+          isProcessingTransaction = false;
+        }, 3200);
       }
     }
 
-    function addAttendanceLog(name, type, time) {
-      if (attendanceList.querySelector("p")) {
-        attendanceList.innerHTML = "";
-      }
+    // ----------------- ATTENDANCE LIST DOM -----------
+    function appendLog(name, id, type, time) {
+      if (emptyLog) emptyLog.remove();
+
       const item = document.createElement("div");
-      item.className = "flex justify-between items-center bg-slate-900/60 p-2 rounded-lg border border-slate-800";
-      item.innerHTML = `<div><span class="font-medium text-slate-200">${name}</span> <span class="text-indigo-400">(${type})</span></div><span class="text-slate-500">${time}</span>`;
-      attendanceList.prepend(item);
+      item.className = "glass-card-subtle p-3 rounded-2xl flex items-center justify-between border border-slate-800 transition-all hover:border-slate-700 animate-fadeIn";
+      item.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+            ${name.charAt(0)}
+          </div>
+          <div>
+            <div class="font-medium text-slate-100 flex items-center gap-2">
+              <span>${name}</span>
+              <span class="text-[10px] text-indigo-400 font-mono">${id}</span>
+            </div>
+            <div class="text-[10px] text-emerald-400 font-medium">${type}</div>
+          </div>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400">${time}</span>
+      `;
+      attendanceContainer.prepend(item);
     }
 
-    // Toggle between scanning & registration mode
-    toggleModeBtn.addEventListener("click", () => {
-      isRegistering = !isRegistering;
-      registerPanel.classList.toggle("hidden", !isRegistering);
-      toggleModeBtn.innerText = isRegistering ? "Back to Scanner" : "Switch to Register Mode";
-      scanLog.innerText = isRegistering ? "Registration Mode active." : "Ready to recognize";
-      const ctx = overlay.getContext("2d");
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
+    // ----------------- MODAL ACTIONS -----------------
+    toggleRegisterModal.addEventListener("click", () => {
+      registerModal.classList.remove("hidden");
     });
 
-    // Capture & Register a face
-    document.getElementById("captureRegisterBtn").addEventListener("click", async () => {
+    closeModal.addEventListener("click", () => {
+      registerModal.classList.add("hidden");
+    });
+
+    resyncBtn.addEventListener("click", async () => {
+      resyncBtn.classList.add("animate-spin");
+      await syncUsers();
+      resyncBtn.classList.remove("animate-spin");
+    });
+
+    captureFaceBtn.addEventListener("click", async () => {
       const id = document.getElementById("regId").value.trim();
       const name = document.getElementById("regName").value.trim();
 
       if (!id || !name) {
-        alert("Please enter ID and Name");
+        alert("Please provide both ID and Full Name.");
         return;
       }
 
-      scanLog.innerText = "Detecting face for registration...";
+      captureFaceBtn.disabled = true;
+      captureFaceBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Analyzing Face...</span>`;
+      lucide.createIcons();
+
       const detection = await faceapi.detectSingleFace(video)
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (!detection) {
-        alert("No face detected! Look directly at the camera and ensure good lighting.");
+        alert("No clear face found in camera viewport. Please stand in front of the lens.");
+        captureFaceBtn.disabled = false;
+        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Capture Descriptor & Save</span>`;
+        lucide.createIcons();
         return;
       }
 
-      // Convert Float32Array to plain array for JSON transfer
-      const descriptor = Array.from(detection.descriptor);
-
       try {
-        scanLog.innerText = "Registering user to Google Sheets...";
+        const descriptorArray = Array.from(detection.descriptor);
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -246,22 +659,32 @@
             action: "register",
             id: id,
             name: name,
-            descriptor: descriptor
+            descriptor: descriptorArray
           })
         });
+
         const result = await res.json();
         if (result.status === "success") {
-          alert(`Success! ${name} is registered.`);
+          AudioEngine.success();
+          alert(`Successfully enrolled ${name} (${id})`);
           document.getElementById("regId").value = "";
           document.getElementById("regName").value = "";
-          await syncUsers(); // Refresh face matcher
+          registerModal.classList.add("hidden");
+          await syncUsers();
+        } else {
+          alert("Registration error: " + (result.message || "Unknown error"));
         }
       } catch (err) {
         console.error(err);
-        alert("Registration failed. Check browser console.");
+        alert("Network failure communicating with Google Apps Script.");
+      } finally {
+        captureFaceBtn.disabled = false;
+        captureFaceBtn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Capture Descriptor & Save</span>`;
+        lucide.createIcons();
       }
     });
 
+    // Start on page load
     window.addEventListener("load", init);
   </script>
 </body>
